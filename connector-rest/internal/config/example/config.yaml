@@ -1,0 +1,4 @@
+basic_field: "some string"
+example: ${WORKSPACE}/file/path
+inner_struct:
+  field: 1s

@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>config: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">aculo/connector-restapi/internal/config/internal_logic.go (88.3%)</option>
+				
+				<option value="file1">aculo/connector-restapi/internal/config/phases.go (66.7%)</option>
+				
+				<option value="file2">aculo/connector-restapi/internal/config/utils.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package config
+
+import (
+        "fmt"
+        "path/filepath"
+        "reflect"
+        "strings"
+
+        "github.com/mitchellh/mapstructure"
+        "github.com/spf13/pflag"
+        "github.com/spf13/viper"
+)
+
+// Phase of config initialisation
+type initPhase func() error
+
+// Container for config override
+type overrideContainer struct {
+        name  string
+        value any
+}
+
+// Use pflag to bind
+type flagSetter func()
+
+// Other options
+type elseSetter func() error
+
+func execute(pipeline []initPhase) error <span class="cov8" title="1">{
+        for _, phase := range pipeline </span><span class="cov8" title="1">{
+                err := phase()
+                if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("cannot init condfig %e", err)
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Adds validation to env binding
+func registerENV(input ...string) error <span class="cov8" title="1">{
+        viper.BindEnv(input...)
+        for _, env := range input </span><span class="cov8" title="1">{
+                // Type-free validation
+                // Not defined integer or bool should be "" as well
+                envalue := viper.GetString(env)
+                if envalue == "" </span><span class="cov8" title="1">{
+                        return fmt.Errorf("%s is not defined", env)
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Wraps viper.BindPFlags()
+func bindFlags() error <span class="cov8" title="1">{
+        pflag.Parse()
+        err := viper.BindPFlags(pflag.CommandLine)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot bind flags: %v", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+func fillGlobalConfig() error <span class="cov8" title="1">{
+
+        err := viper.ReadInConfig()
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot read config file: %v", err)
+        }</span>
+
+        // Will be called one after another
+        // Do not try to put them separately
+        // ComposeDecode in crucial
+        <span class="cov8" title="1">hooks := []mapstructure.DecodeHookFunc{
+                envReplaceHook(),
+                mapstructure.StringToTimeDurationHookFunc(),
+        }
+        composeHook := mapstructure.ComposeDecodeHookFunc(hooks...)
+        err = viper.Unmarshal(&amp;c, viper.DecodeHook(composeHook))
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot unmarshal config file contents: %v", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Parse config file path for  ext
+// TODO filepath.EXT()
+func extFromPath(path string) string <span class="cov8" title="1">{
+        dotIndex := strings.LastIndexByte(path, '.')
+        if dotIndex == -1 </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+        <span class="cov8" title="1">return path[dotIndex+1:]</span>
+}
+
+// Parse config file path for name
+func nameFromPath(path string) string <span class="cov8" title="1">{
+        dotIndex := strings.LastIndexByte(path, '.')
+        if dotIndex == -1 </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+        <span class="cov8" title="1">slashIndex := strings.LastIndexByte(path[:dotIndex], '/')
+        return path[slashIndex+1 : dotIndex]</span>
+}
+
+// Sets config file name and extention
+// Change only if something breaks
+func handleConfigFile() error <span class="cov8" title="1">{
+        configFileEnv := viper.GetString("CONFIG_FILE")
+
+        // Getting parts of path
+        name := nameFromPath(configFileEnv)
+        ext := extFromPath(configFileEnv)
+        dir := filepath.Dir(configFileEnv)
+
+        // Setting Config
+        viper.AddConfigPath(dir)
+        viper.SetConfigName(name)
+        viper.SetConfigType(ext)
+        return nil
+}</span>
+
+// Parse ${ENV}/dir/file kind of path,
+// Only works if variable type is path, see ./config.go
+func envReplaceHook() mapstructure.DecodeHookFuncType <span class="cov8" title="1">{
+        hook := mapstructure.DecodeHookFuncType(
+                func(
+                        f reflect.Type,
+                        t reflect.Type,
+                        data any,
+                ) (any, error) </span><span class="cov8" title="1">{
+                        // Skip other types of data
+                        if f.Kind() != reflect.String </span><span class="cov8" title="1">{
+                                return data, nil
+                        }</span>
+                        <span class="cov8" title="1">if t != reflect.TypeOf(path("")) </span><span class="cov8" title="1">{
+                                return data, nil
+                        }</span>
+
+                        // example
+                        // #config.yaml
+                        // key : ${WORKSPACE}/file/path
+                        // #.env
+                        // WORKSPACE = ~/user/goapps/thisapp/internal
+
+                        // viper gives us not 'path' type but regular string
+                        <span class="cov8" title="1">dataString := data.(string)
+
+                        // Search for '$' in string
+                        dollarIndex := strings.Index(dataString, "$")
+                        if dollarIndex == -1 </span><span class="cov8" title="1">{
+                                return data, nil
+                        }</span>
+                        <span class="cov8" title="1">dataString = dataString[dollarIndex:]
+
+                        // Getting indexes of '{' and '}'
+                        openBracket := strings.Index(dataString[dollarIndex:], "{")
+                        closeBracket := strings.Index(dataString[dollarIndex:], "}")
+                        if closeBracket == -1 || openBracket == -1 </span><span class="cov0" title="0">{
+                                return data, nil
+                        }</span>
+
+                        // After this operation envName == WORKSPACE
+                        <span class="cov8" title="1">envName := dataString[openBracket+1 : closeBracket]
+
+                        // ~/user/goapps/thisapp/internal + /file/path
+                        // ENV we trying to get should not contain '/'
+                        // and actual data we want to get should start with'/'
+                        // This is the most common case for any path operation
+                        path := viper.GetString(envName) + dataString[closeBracket+1:]
+                        return path, nil</span>
+                })
+        <span class="cov8" title="1">return hook</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package config
+
+import (
+        "sync"
+
+        "github.com/spf13/viper"
+)
+
+// Global config instance
+var c Config
+
+// Returns global config instance
+func Get() Config <span class="cov0" title="0">{
+        return c
+}</span>
+
+// Initialaise config process
+// Every path in service works around single env WORKSPACE
+func InitConfig() (err error) <span class="cov8" title="1">{
+
+        once := sync.Once{}
+        once.Do(func() </span><span class="cov8" title="1">{
+                pipeline := []initPhase{
+                        setEnv,
+                        setFlags,
+                        handleConfigFile,
+                        bindFlags,
+                        fillGlobalConfig,
+                        setElse,
+                        doOverride,
+                }
+                // panics only here
+                err = execute(pipeline)
+                if err != nil </span><span class="cov0" title="0">{
+                        return
+                }</span>
+        })
+        <span class="cov8" title="1">return</span>
+}
+
+// Set and immediately validate env variable
+func setEnv() error <span class="cov8" title="1">{
+        for _, env := range environment </span><span class="cov8" title="1">{
+                err := registerENV(env)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Set flags
+func setFlags() (err error) <span class="cov8" title="1">{
+        for _, flag := range flags </span><span class="cov0" title="0">{
+                flag()
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Callback on config change , aliases etc.
+func setElse() (err error) <span class="cov8" title="1">{
+        for _, els := range elses </span><span class="cov0" title="0">{
+                err = els()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Do not use, this violates constraints
+// If there any way to not override - do not override (C) Me
+func doOverride() error <span class="cov8" title="1">{
+        for _, over := range override </span><span class="cov0" title="0">{
+                viper.Set(over.name, over.value)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package config
+
+func AssembleAddress(config Config) string <span class="cov0" title="0">{
+        return config.HTTPServer.ListeningAddress + config.HTTPServer.Port
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

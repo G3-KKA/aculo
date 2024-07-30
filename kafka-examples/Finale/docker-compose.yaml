@@ -1,0 +1,105 @@
+#LETS Go
+services:
+  kafka0:
+    image: 'bitnami/kafka:3.7.1'
+    restart: unless-stopped
+    ports:
+    # Порты чтобы ходить в контроллера извне докер сети
+      - '9092:9092'
+    networks:
+      kafka-network:  
+    environment:
+      # Должно быть уникально для каждого узла
+      KAFKA_CFG_NODE_ID: 0   
+      # Должно быть одинаковое для всех узлов в кластере
+      KAFKA_KRAFT_CLUSTER_ID: 'TRICV2bUl0UkGTD/1e8t+waa'
+
+      # Выполняем роли брокера и контроллера
+      KAFKA_CFG_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER' #
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '0@kafka0:29093,1@kafka1:29093' #__CHG_IF_NEW_NODE__
+
+      # Или же??? 
+      # То что к нам приходит на kafka0:9093 
+      # -- будет рассматриватсья как CONTROLLER
+      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka0:29093,INTERNAL://kafka0:29092,EXTERNAL://0.0.0.0:9092,DOCKERNETWORK://kafka0:29094' #__CHG_IF_NEW_NODE__
+
+      # Это мы отдаем обратно, как метаданные
+      #  , к которым по вторичному подключению
+      #  уже пойдет клиент которому нужен брокер
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka0:29092,EXTERNAL://localhost:9092,DOCKERNETWORK://kafka0:29094' #__CHG_IF_NEW_NODE__
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT' #__CHG_IF_NEW_NODE__
+  kafka1:
+    image: 'bitnami/kafka:3.7.1'
+    ports:
+      - '9093:9093'
+    networks:
+      kafka-network:   
+    restart: unless-stopped
+    environment:
+      # Должно быть уникально для каждого узла
+      KAFKA_CFG_NODE_ID: 1
+      # Должно быть одинаковое для всех узлов в кластере
+      KAFKA_KRAFT_CLUSTER_ID: "TRICV2bUl0UkGTD/1e8t+waa"
+
+      # Выполняем роли брокера и контроллера
+      KAFKA_CFG_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER' #
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '0@kafka0:29093,1@kafka1:29093' #__CHG_IF_NEW_NODE__
+
+      # Или же???
+      # То что к нам приходит на kafka1:9093
+      # -- будет рассматриватсья как CONTROLLER
+      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka1:29093,INTERNAL://kafka1:29092,EXTERNAL://0.0.0.0:9093,DOCKERNETWORK://kafka1:29094' #__CHG_IF_NEW_NODE__
+
+      # Это мы отдаем обратно, как метаданные
+      #  , к которым по вторичному подключению
+      #  уже пойдет клиент которому нужен брокер
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka1:29092,EXTERNAL://localhost:9093,DOCKERNETWORK://kafka1:29094' #__CHG_IF_NEW_NODE__
+
+      # SECURITY
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT' #__CHG_IF_NEW_NODE__
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - '7731:8080'
+    depends_on:
+      - 'kafka0'
+      - 'kafka1'  
+    networks:
+      kafka-network:    
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'finale-cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka0:29092,kafka1:29092'
+      #KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: 'PLAINTEXT'
+#  api-gateway:
+#    build:
+#      context: ./api-gateway
+#      dockerfile: Dockerfile
+#    depends_on:
+#      - kafka0
+#      - kafka1
+#    networks:
+#      - kafka-network
+#    ports:
+#      - "8080:8080"
+#  second-microservice:
+#    build:
+#      context: ./second-microservice
+#      dockerfile: Dockerfile
+#    depends_on:
+#      - kafka0
+#      - kafka1
+#    networks:
+#      - kafka-network
+volumes:
+  kafka0_data:
+networks:
+  kafka-network:
+    driver: bridge
+    
+
+
+  
