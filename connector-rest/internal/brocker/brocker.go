@@ -19,12 +19,9 @@ type Brocker interface {
 	SendEvent(context.Context, SendEventRequest) (SendEventResponse, error)
 }
 
-type BuildBrockerRequest struct {
-}
-
 // TODO : find a way to close connection,
 // maybe connection pool, like in PostgresPoll
-func New(ctx context.Context, config config.Config, req BuildBrockerRequest) (Brocker, error) {
+func New(ctx context.Context, config config.Config) (Brocker, error) {
 	producer, err := sarama.NewAsyncProducer(config.Kafka.Addresses, nil)
 	if err != nil {
 		return nil, err
@@ -43,6 +40,7 @@ type eBroker struct {
 
 // GetEvent implements EventBrocker.
 func (brocker *eBroker) SendEvent(ctx context.Context, req SendEventRequest) (SendEventResponse, error) {
+
 	brocker.producer.Input() <- &sarama.ProducerMessage{
 		Topic: req.Topic,
 		Value: sarama.ByteEncoder(req.Event),

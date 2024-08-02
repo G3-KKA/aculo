@@ -6,6 +6,17 @@ import (
 	_ "github.com/spf13/viper"
 )
 
+// Global config instance
+var c Config
+
+// Returns global config instance
+func Get() Config {
+	return c
+}
+func InitConfig() error {
+	return initConfig()
+}
+
 // Hints
 //
 // 1. use `mapstructure` in Config as if it is a yaml/json tag

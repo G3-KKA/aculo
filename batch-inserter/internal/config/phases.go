@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Global config instance
+
 // Initialaise config process
 // Every path in service works around single env WORKSPACE
 func initConfig() (err error) {

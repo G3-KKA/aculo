@@ -1,7 +1,7 @@
 package service
 
 import (
-	"aculo/batch-inserter/internal/brocker"
+	"aculo/batch-inserter/domain"
 	"aculo/batch-inserter/internal/config"
 	repository "aculo/batch-inserter/internal/repo"
 	"context"
@@ -9,18 +9,18 @@ import (
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname MockService  --inpackage=true
 type Service interface {
-	ConsumeAndLoad(context.Context) error
-}
-type BuildServiceRequest struct {
-	Repo    repository.Repository
-	Brocker brocker.Brocker
-}
-type TODORENAMEservice struct {
+	SendBatch(context.Context, []domain.Event) error
 }
 
-func (s *TODORENAMEservice) ConsumeAndLoad(context.Context) error {
-	return nil
+type service struct {
+	repo repository.Repository
 }
-func NewService(ctx context.Context, config config.Config, req BuildServiceRequest) (Service, error) {
-	return &TODORENAMEservice{}, nil
+
+func (s *service) SendBatch(ctx context.Context, eventbatch []domain.Event) error {
+	return s.repo.SendBatch(ctx, eventbatch)
+}
+func New(ctx context.Context, config config.Config, repo repository.Repository) (Service, error) {
+	return &service{
+		repo: repo,
+	}, nil
 }

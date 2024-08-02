@@ -2,7 +2,6 @@ package groups
 
 import (
 	"aculo/connector-restapi/internal/config"
-	"aculo/connector-restapi/internal/server"
 	"aculo/connector-restapi/internal/service"
 	"context"
 	"io"
@@ -19,7 +18,7 @@ import (
 	getEvent(gctx *gin.Context)
 } */
 
-func NewEventGroup(ctx context.Context, config config.Config, service service.Service) server.Group {
+func NewEventGroup(ctx context.Context, config config.Config, service service.Service) Group {
 	return &eventGroup{
 		service: service,
 	}

@@ -7,7 +7,4 @@ build:
 run:
 	${WORKSPACE}/bin/server
 build-and-run: build run
-
-generate-swagger:
-	 swag init -o ${WORKSPACE}/docs -g ${WORKSPACE}/api/api.go
 	

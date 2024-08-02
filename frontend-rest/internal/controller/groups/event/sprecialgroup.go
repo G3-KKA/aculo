@@ -1,7 +1,7 @@
 package event
 
 import (
-	"aculo/frontend-restapi/internal/server"
+	"aculo/frontend-restapi/internal/controller/groups"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ import (
 type specialGroup struct {
 }
 
-func NewSpecialGroup() server.Group {
+func NewSpecialGroup() groups.Group {
 	return &specialGroup{}
 }
 func (g *specialGroup) getSpecial(gctx *gin.Context) {

@@ -1,81 +1,61 @@
 package app
 
 import (
-	"aculo/batch-inserter/internal/todo"
+	"aculo/batch-inserter/internal/config"
+	"aculo/batch-inserter/internal/controller"
+	log "aculo/batch-inserter/internal/logger"
+	repository "aculo/batch-inserter/internal/repo"
+	"aculo/batch-inserter/internal/service"
 	"context"
 
-	"fmt"
-	"log"
-	"net"
-	"time"
-
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/IBM/sarama"
+	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
+	controller controller.Controller
 }
 
-func Run() error {
-	click, err := Click()
-	if err != nil {
-		panic(err)
-	}
-	consumer, err := sarama.NewConsumer([]string{"localhost:9092", "localhost:9093"}, nil)
-	if err != nil {
-		log.Fatalf("Failed to create consumer: %v", err)
-	}
-	defer consumer.Close()
+// ИНКАПСУЛИРОВАТЬ HTTP СЕРВЕР  В КОНТРОЛЛЕРА, ИБО КОНТРОЛЛЕР ЭТО ТАКЖЕ GRPC СЕРВИС И ОСТАЛЬНОЕ
+func Run() (err error) {
 
-	todo := todo.New(click, consumer)
-	todo.DoWork(context.Background())
-	return nil
+	err = config.InitConfig()
+	if err != nil {
+		return err
+	}
+	initConfig := config.Get()
+
+	err = log.InitGlobalLogger(initConfig)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.TODO()
+
+	app, err := newapp(ctx, initConfig)
+	if err != nil {
+		return err
+	}
+	errorGroup := &errgroup.Group{}
+	errorGroup.Go(app.controller.Serve)
+
+	return errorGroup.Wait()
+
 }
-
-// Get conn
-func Click() (driver.Conn, error) {
-
-	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{"127.0.0.1:9000"},
-		Auth: clickhouse.Auth{
-			Database: "default",
-			Username: "default",
-			Password: "",
-		},
-		DialContext: func(ctx context.Context, addr string) (net.Conn, error) {
-			var d net.Dialer
-			return d.DialContext(ctx, "tcp", addr)
-		},
-		Debug: true,
-		Debugf: func(format string, v ...any) {
-			fmt.Printf(format+"\n", v...)
-		},
-		Settings: clickhouse.Settings{
-			"max_execution_time": 60,
-		},
-		Compression: &clickhouse.Compression{
-			Method: clickhouse.CompressionLZ4,
-		},
-		DialTimeout:          time.Second * 30,
-		MaxOpenConns:         5,
-		MaxIdleConns:         5,
-		ConnMaxLifetime:      time.Duration(10) * time.Minute,
-		ConnOpenStrategy:     clickhouse.ConnOpenInOrder,
-		BlockBufferSize:      10,
-		MaxCompressionBuffer: 10240,
-		ClientInfo: clickhouse.ClientInfo{ // optional, please see Client info section in the README.md
-			Products: []struct {
-				Name    string
-				Version string
-			}{
-				{Name: "my-app", Version: "0.1"},
-			},
-		},
-	})
+func newapp(ctx context.Context, conf config.Config) (*App, error) {
+	repo, err := repository.New(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
-	return conn, conn.Ping(context.Background())
+	service, err := service.New(ctx, conf, repo)
+	if err != nil {
+		return nil, err
+	}
+	controller, err := controller.New(ctx, conf, service)
 
+	if err != nil {
+		return nil, err
+	}
+	return &App{
+		controller: controller,
+	}, nil
 }

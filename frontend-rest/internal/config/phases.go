@@ -6,17 +6,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Global config instance
-var c Config
-
-// Returns global config instance
-func Get() Config {
-	return c
-}
-
 // Initialaise config process
 // Every path in service works around single env WORKSPACE
-func InitConfig() (err error) {
+func initConfig() (err error) {
 
 	once := sync.Once{}
 	once.Do(func() {
@@ -31,9 +23,6 @@ func InitConfig() (err error) {
 		}
 		// panics only here
 		err = execute(pipeline)
-		if err != nil {
-			return
-		}
 	})
 	return
 }

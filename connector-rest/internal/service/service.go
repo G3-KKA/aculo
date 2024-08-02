@@ -24,10 +24,10 @@ type BuildServiceRequest struct {
 	Brocker brocker.Brocker
 }
 
-func New(ctx context.Context, config config.Config, req BuildServiceRequest) (Service, error) {
+func New(ctx context.Context, config config.Config, brocker brocker.Brocker) (Service, error) {
 
 	return &eventService{
-		b: req.Brocker,
+		b: brocker,
 	}, nil
 }
 

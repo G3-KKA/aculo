@@ -1,0 +1,78 @@
+basePath: /api/v1
+definitions:
+  domain.Event:
+    properties:
+      data:
+        type: string
+      eid:
+        description: Event IDentifier
+        type: string
+      provider_id:
+        type: string
+      schema_id:
+        type: string
+      type:
+        type: string
+    type: object
+  event.Error:
+    properties:
+      message:
+        type: string
+    type: object
+  event.Rsp200:
+    properties:
+      event:
+        $ref: '#/definitions/domain.Event'
+      message:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server celler server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /event/{eid}:
+    get:
+      consumes:
+      - application/json
+      description: 'TODO : Add description test'
+      parameters:
+      - description: Enevent ID
+        in: path
+        name: eid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/event.Rsp200'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/event.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/event.Error'
+      summary: Get event by EID(UUID)
+      tags:
+      - events
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

@@ -1,0 +1,21 @@
+Logger:
+    SyncTimeout: 1s 
+    Cores:
+      - Name : stderr
+        EncoderLevel: production
+        Path: /dev/stderr
+        Level : 0
+        MustCreateCore: false
+      - Name : logfile
+        EncoderLevel: production
+        Path: "${WORKSPACE}/tmp/log.log"
+        Level : -1
+        MustCreateCore: true
+Broker:
+    Addresses:
+      - localhost:9092
+      - localhost:9093
+    BatchSize: 1000
+    Topic: "test"
+    BatchProvider:
+      PreallocSize: 20

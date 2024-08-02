@@ -21,10 +21,10 @@ type BuildServiceRequest struct {
 	Repo repository.Repository
 }
 
-func New(ctx context.Context, config config.Config, req BuildServiceRequest) (Service, error) {
+func New(ctx context.Context, config config.Config, repo repository.Repository) (Service, error) {
 
 	eservice, err := eventservice.New(ctx, config, eventservice.BuildEserviceRequest{
-		Repo:        req.Repo,
+		Repo:        repo,
 		Transformer: transfomer.New(ctx, config),
 	})
 	if err != nil {
