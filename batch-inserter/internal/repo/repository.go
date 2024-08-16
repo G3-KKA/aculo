@@ -3,51 +3,115 @@ package repository
 import (
 	"aculo/batch-inserter/domain"
 	"aculo/batch-inserter/internal/config"
-	log "aculo/batch-inserter/internal/logger"
+	"aculo/batch-inserter/internal/logger"
+	"aculo/batch-inserter/internal/unified/unierrors"
+	"aculo/batch-inserter/internal/unified/unifaces"
 	"context"
 	"fmt"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 )
 
+var _ unifaces.Tx[RepositoryAPI] = (*clickhouseRepo)(nil)
+var _ Repository = (*clickhouseRepo)(nil)
+
 //go:generate mockery --filename=mock_repository.go --name=Repository --dir=. --structname MockRepository  --inpackage=true
 type Repository interface {
-	SendBatch(context.Context, []domain.Event) error
-}
-type clickhouseRepo struct {
-	ch clickhouse.Conn
+	Tx() (RepositoryAPI, unifaces.TxClose, error)
 }
 
-func New(ctx context.Context, config config.Config) (Repository, error) {
-	conn, err := Click()
+//go:generate mockery --filename=mock_repositoryapi.go --name=RepositoryAPI --dir=. --structname MockRepositoryAPI  --inpackage=true
+type RepositoryAPI interface {
+	SendBatch(ctx context.Context, batch []domain.Event) error
+	GracefulShutdown() error
+}
+type clickhouseRepo struct {
+	ch     clickhouse.Conn
+	logger logger.Logger
+
+	unavailable atomic.Bool
+	mx          *sync.RWMutex
+}
+
+// GracefulShutdown implements RepositoryAPI.
+func (repo *clickhouseRepo) GracefulShutdown() error {
+	if repo.unavailable.CompareAndSwap(false, true) {
+		// GracefulShutdown can be called only if Tx was called, so we need a bit of magic here
+		repo.mx.RUnlock()
+		// Lock cant be acquired while Tx with
+		repo.mx.Lock()
+		defer repo.mx.RLock()
+		defer repo.mx.Unlock()
+		return repo.ch.Close()
+	}
+	return unierrors.ErrUnavailable
+}
+
+// # Common middleware for all api calls
+//
+// Safe to call multiple times, will return [unifaces.ErrTxAlreadyClosed].
+// This error may be ommited, because multi-call cannot break logic
+func (repo *clickhouseRepo) Tx() (RepositoryAPI, unifaces.TxClose, error) {
+
+	if repo.unavailable.Load() {
+		return nil, func() error { return unierrors.ErrUnavailable }, unierrors.ErrUnavailable
+	}
+
+	repo.mx.RLock()
+	var closed atomic.Bool
+	f := func() error {
+		if !closed.CompareAndSwap(false, true) {
+			return unifaces.ErrTxAlreadyClosed
+		}
+		repo.mx.RUnlock()
+		return nil
+	}
+	return repo, unifaces.TxClose(f), nil
+
+}
+func New(ctx context.Context, config config.Config, l logger.Logger) (Repository, error) {
+	// Ignoring close func, because it will be called on graceful shutdown
+	conn, _, err := Click()
 	if err != nil {
 		return nil, err
 	}
 	return &clickhouseRepo{
-		ch: conn,
+		ch:     conn,
+		logger: l,
+		mx:     &sync.RWMutex{},
 	}, nil
 
 }
+
+const noexport_SEND_BATCH_QUERY = `INSERT INTO event.main_table (eid, provider_id, schema_id, type, data)`
+
 func (c *clickhouseRepo) SendBatch(ctx context.Context, eventbatch []domain.Event) error {
-	batch, err := c.ch.PrepareBatch(ctx, "INSERT INTO event.main_table (eid, provider_id, schema_id, type, data)")
+
+	batch, err := c.ch.PrepareBatch(ctx, noexport_SEND_BATCH_QUERY)
 	if err != nil {
-		log.Info("failed to prepare batch: %v", err)
+		c.logger.Info(err)
 		return err
 	}
 	for _, event := range eventbatch {
 		err := batch.AppendStruct(&event)
-		batch.Append()
 		if err != nil {
-			log.Info("failed to append struct: %v", err)
+			c.logger.Info(err)
+			return err
+		}
+		err = batch.Append()
+		if err != nil {
+			c.logger.Info(err)
 			return err
 		}
 	}
 	err = batch.Send()
 	if err != nil {
-		log.Info("failed to send batch: %v", err)
+		c.logger.Info(err)
 		return err
 	} // slice will be deallocated here, fix
 	return nil
@@ -55,7 +119,8 @@ func (c *clickhouseRepo) SendBatch(ctx context.Context, eventbatch []domain.Even
 
 // =========================== ПОДКЛЮЧЕНИЕ НИКОГДА НЕ ЗАКРЫВАЕТСЯ, ИСПРАВИТЬ ============================
 // Get conn
-func Click() (driver.Conn, error) {
+// КУЧА ХАРДКОДА
+func Click() (driver.Conn, func() error, error) {
 
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{"127.0.0.1:9000"},
@@ -95,8 +160,9 @@ func Click() (driver.Conn, error) {
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, func() error { return err }, err
 	}
-	return conn, conn.Ping(context.Background())
+	conn.Close()
+	return conn, conn.Close, conn.Ping(context.Background())
 
 }

@@ -20,32 +20,27 @@ func Test(t *testing.T) {
 // ========================
 
 func (t *ConfigTestSuite) SetupSuite() {
-	viper.Set("WORKSPACE", "../..")
-	viper.Set("CONFIG_FILE", viper.GetString("WORKSPACE")+"/config.yaml")
 }
 func (t *ConfigTestSuite) BeforeTest(suiteName, testName string) {
 	switch testName {
 	case "Test_fillGlobalConfig":
-		handleConfigFile()
+		_ = handleConfigFile()
 	case "Test_registerENV":
 	}
 
 }
 func (t *ConfigTestSuite) Test_execute() {
-	defer func() {
-		err := recover()
-		t.Nil(err, "should not panic", err)
-	}()
-	execute([]initPhase{})
+	err := execute([]initPhase{})
+	t.NoError(err)
 }
 func (t *ConfigTestSuite) Test_bindFlags() {
 	err := bindFlags()
-	t.Nil(err, "should be able to bind flags", err)
+	t.NoError(err, "should be able to bind flags", err)
 
 }
 func (t *ConfigTestSuite) Test_fillGlobalConfig() {
 	err := fillGlobalConfig()
-	t.Nil(err, "should be able to fill global config", err)
+	t.NoError(err, "should be able to fill global config", err)
 
 }
 func (t *ConfigTestSuite) Test_envReplaceHook() {
@@ -76,7 +71,7 @@ func (t *ConfigTestSuite) Test_envReplaceHook() {
 			D:              -1,
 			ExpectedResult: -1,
 			ExpecteedErr:   nil,
-			Desc:           "hook target != reflect.config.path ",
+			Desc:           "hook target != reflect.config.config.Path ",
 		},
 		{
 			F:              reflect.TypeOf(path("")),
@@ -84,13 +79,13 @@ func (t *ConfigTestSuite) Test_envReplaceHook() {
 			D:              "/me/mario",
 			ExpectedResult: "/me/mario",
 			ExpecteedErr:   nil,
-			Desc:           "hook input is config.path type, but does not contain ${ENV} statement",
+			Desc:           "hook input is config.config.Path type, but does not contain ${ENV} statement",
 		},
 		{
 			F:              reflect.TypeOf(path("")),
 			T:              reflect.TypeOf(path("")),
-			D:              "${WORKSPACE}/file/path",
-			ExpectedResult: viper.GetString("WORKSPACE") + "/file/path",
+			D:              "${WORKSPACE}/file/config.Path",
+			ExpectedResult: viper.GetString("WORKSPACE") + "/file/config.Path",
 			ExpecteedErr:   nil,
 			Desc:           "correct data, should be correct result",
 		},
@@ -149,12 +144,12 @@ func (t *ConfigTestSuite) Test_registerENV() {
 		if t.Equal(testcase.Result, viper.GetString(testcase.ENV), testcase.Desc) {
 			continue
 		}
-		t.NotNil(testcase.Error, err, testcase.Desc)
+		t.ErrorIs(err, testcase.Error, testcase.Desc)
 	}
 
 }
 
 func (t *ConfigTestSuite) Test_InitConfig() {
-	err := InitConfig()
-	t.Equal(nil, err, "should be ok")
+	err := initConfig()
+	t.NoError(err, "should be ok")
 }

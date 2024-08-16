@@ -15,7 +15,7 @@ type TransformResponse struct {
 
 //go:generate mockery --name=Transformer --dir=. --outpkg=mock_transformer --filename=mock_transformer.go --output=./mocks/transformer --structname MockTransformer
 type Transformer interface {
-	Transform(context.Context, TransformRequest) (TransformResponse, error)
+	Transform(ctx context.Context, req TransformRequest) (TransformResponse, error)
 }
 
 type transformer struct {

@@ -3,7 +3,7 @@ package app
 import (
 	"aculo/batch-inserter/internal/config"
 	"aculo/batch-inserter/internal/controller"
-	log "aculo/batch-inserter/internal/logger"
+	"aculo/batch-inserter/internal/logger"
 	repository "aculo/batch-inserter/internal/repo"
 	"aculo/batch-inserter/internal/service"
 	"context"
@@ -18,39 +18,45 @@ type App struct {
 // ИНКАПСУЛИРОВАТЬ HTTP СЕРВЕР  В КОНТРОЛЛЕРА, ИБО КОНТРОЛЛЕР ЭТО ТАКЖЕ GRPC СЕРВИС И ОСТАЛЬНОЕ
 func Run() (err error) {
 
-	err = config.InitConfig()
+	initConfig, err := config.ReadInConfig()
 	if err != nil {
 		return err
 	}
-	initConfig := config.Get()
-
-	err = log.InitGlobalLogger(initConfig)
+	logger, _, err := logger.AssembleLogger(initConfig)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.TODO()
 
-	app, err := newapp(ctx, initConfig)
+	app, err := newapp(ctx, initConfig, logger)
 	if err != nil {
+		logger.Fatal(err)
 		return err
 	}
 	errorGroup := &errgroup.Group{}
-	errorGroup.Go(app.controller.Serve)
-
-	return errorGroup.Wait()
+	wrapper := func() error {
+		return app.Serve(ctx)
+	}
+	errorGroup.Go(wrapper)
+	err = errorGroup.Wait()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	return
 
 }
-func newapp(ctx context.Context, conf config.Config) (*App, error) {
-	repo, err := repository.New(ctx, conf)
+func newapp(ctx context.Context, conf config.Config, logger logger.Logger) (*App, error) {
+
+	repo, err := repository.New(ctx, conf, logger)
 	if err != nil {
 		return nil, err
 	}
-	service, err := service.New(ctx, conf, repo)
+	service, err := service.New(ctx, conf, logger, repo)
 	if err != nil {
 		return nil, err
 	}
-	controller, err := controller.New(ctx, conf, service)
+	controller, err := controller.New(ctx, conf, logger, service)
 
 	if err != nil {
 		return nil, err
@@ -58,4 +64,27 @@ func newapp(ctx context.Context, conf config.Config) (*App, error) {
 	return &App{
 		controller: controller,
 	}, nil
+}
+func (app *App) Serve(ctx context.Context) (err error) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+		f := func() error {
+			ctrl, txclose, err := app.controller.Tx()
+			if err != nil {
+				return err
+			}
+			defer txclose()
+			return ctrl.HandleBatch(ctx)
+		}
+		err = f()
+		if err != nil {
+			return err
+		}
+	}
+
 }

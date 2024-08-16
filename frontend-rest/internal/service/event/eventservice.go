@@ -18,7 +18,7 @@ type GetEventResponse struct {
 
 //go:generate mockery --name=EventService --dir=. --outpkg=mock_event_service --filename=mock_event_service.go --output=./mocks/event_service --structname MockEventService
 type EventService interface {
-	GetEvent(context.Context, GetEventRequest) (GetEventResponse, error)
+	GetEvent(ctx context.Context, req GetEventRequest) (GetEventResponse, error)
 }
 
 type eventService struct {

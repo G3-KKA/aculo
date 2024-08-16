@@ -16,7 +16,7 @@ type SendEventResponse struct {
 
 //go:generate mockery --filename=mock_brocker.go --name=Brocker --dir=. --structname MockBrocker  --inpackage=true
 type Brocker interface {
-	SendEvent(context.Context, SendEventRequest) (SendEventResponse, error)
+	SendEvent(ctx context.Context, req SendEventRequest) (SendEventResponse, error)
 }
 
 // TODO : find a way to close connection,
@@ -26,16 +26,19 @@ func New(ctx context.Context, config config.Config) (Brocker, error) {
 	if err != nil {
 		return nil, err
 	}
-	repo := &eBroker{
+
+	brocker := &eBroker{
 
 		producer: producer,
 	}
-	return repo, nil
+	producer.Close()
+	return brocker, nil
 
 }
 
 type eBroker struct {
-	producer sarama.AsyncProducer
+	producer       sarama.AsyncProducer // ЛИШНЕЕ !!!
+	internalChanel chan *sarama.ProducerMessage
 }
 
 // GetEvent implements EventBrocker.

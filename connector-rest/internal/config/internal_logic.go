@@ -38,7 +38,10 @@ func execute(pipeline []initPhase) error {
 
 // Adds validation to env binding
 func registerENV(input ...string) error {
-	viper.BindEnv(input...)
+	err := viper.BindEnv(input...)
+	if err != nil {
+		return err
+	}
 	for _, env := range input {
 		// Type-free validation
 		// Not defined integer or bool should be "" as well
@@ -101,7 +104,7 @@ func nameFromPath(path string) string {
 	return path[slashIndex+1 : dotIndex]
 }
 
-// Sets config file name and extention
+// Sets config file name and extension
 // Change only if something breaks
 func handleConfigFile() error {
 	configFileEnv := viper.GetString("CONFIG_FILE")
@@ -142,7 +145,7 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 			// WORKSPACE = ~/user/goapps/thisapp/internal
 
 			// viper gives us not 'path' type but regular string
-			dataString := data.(string)
+			dataString, _ := data.(string)
 
 			// Search for '$' in string
 			dollarIndex := strings.Index(dataString, "$")

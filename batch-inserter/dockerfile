@@ -1,0 +1,16 @@
+FROM golang:1.22.5-alpine3.20 AS builder
+WORKDIR /app
+RUN apk add make
+COPY . .
+# Change make on appmanager.sh run 
+RUN make build
+
+# FROM debian:bookworm AS runner
+FROM alpine:3.20 AS runner
+WORKDIR /app
+
+COPY --from=builder /app/bin/batch-inserter ./bin/
+COPY --from=builder /app/makefile ./
+# Change make on appmanager.sh run 
+RUN apk add make
+CMD make run

@@ -1,0 +1,58 @@
+services:
+  kafka0:
+    image: 'bitnami/kafka:3.7.1'
+    restart: unless-stopped
+    ports:
+      - '27730:9092'
+    environment:
+      KAFKA_CFG_NODE_ID: 0   
+      KAFKA_KRAFT_CLUSTER_ID: 'bjk8e0VimIVGxWHUvBuoRAgg'
+
+      KAFKA_CFG_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER' #
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '0@kafka0:29093'
+
+      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka0:29093,INTERNAL://kafka0:29092,EXTERNAL://0.0.0.0:9092,DOCKERNETWORK://kafka0:29094,LOCAL://localhost:29099' 
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka0:29092,EXTERNAL://localhost:27730,DOCKERNETWORK://kafka0:29094,LOCAL://localhost:29099' 
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT,LOCAL:PLAINTEXT' 
+      
+      # NOT SURE WHICH ONE IS THE RIGHT ONE 
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      KAFKA_CFG_DELETE_TOPIC_ENABLE: 'true'
+    volumes:
+      - ./kafkawait.sh:/kafkawait.sh:rw
+    healthcheck:
+      test: "/kafkawait.sh"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      main-network:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.5.5
+    ports:
+      - '9000:9000'
+      - '8123:8123'  
+    healthcheck:  
+      test: "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  kafka-ui:
+    image: 'provectuslabs/kafka-ui:v0.7.2'
+    ports:
+      - '7731:8080'
+    depends_on:
+      kafka0:
+        condition: service_healthy
+    networks:
+      main-network:    
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'finale-cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka0:29092'
+networks:
+  main-network:
+    driver: bridge

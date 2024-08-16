@@ -75,7 +75,6 @@ func AssembleLogger(config config.Config) (*zap.SugaredLogger, []LevelWithName, 
 
 	// First log message
 	// That tells us that logger construction succeeded
-	defer sugarlogger.Sync()
 	sugarlogger.Debug("Logger construction succeeded")
 
 	return sugarlogger, levels, nil

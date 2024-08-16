@@ -22,21 +22,28 @@ func Test(t *testing.T) {
 func (t *ConfigTestSuite) SetupSuite() {
 	viper.Set("WORKSPACE", "../..")
 	viper.Set("CONFIG_FILE", viper.GetString("WORKSPACE")+"/config.yaml")
+	if viper.Get("INTEGRATION_TEST") != nil {
+		t.T().Skip("Skipping regular test")
+	}
 }
 func (t *ConfigTestSuite) BeforeTest(suiteName, testName string) {
 	switch testName {
 	case "Test_fillGlobalConfig":
-		handleConfigFile()
+		err := handleConfigFile()
+		t.Require().NoError(err)
 	case "Test_registerENV":
 	}
 
 }
+func (t *ConfigTestSuite) Test_All() {
+	err := initConfig()
+	t.NoError(err, "should be ok")
+	cfg := Get()
+	t.NotZero(cfg)
+}
 func (t *ConfigTestSuite) Test_execute() {
-	defer func() {
-		err := recover()
-		t.Nil(err, "should not panic", err)
-	}()
-	execute([]initPhase{})
+	err := execute([]initPhase{})
+	t.NoError(err)
 }
 func (t *ConfigTestSuite) Test_bindFlags() {
 	err := bindFlags()
@@ -149,12 +156,12 @@ func (t *ConfigTestSuite) Test_registerENV() {
 		if t.Equal(testcase.Result, viper.GetString(testcase.ENV), testcase.Desc) {
 			continue
 		}
-		t.NotNil(testcase.Error, err, testcase.Desc)
+		t.ErrorIs(err, testcase.Error, testcase.Desc)
 	}
 
 }
 
 func (t *ConfigTestSuite) Test_InitConfig() {
 	err := InitConfig()
-	t.Equal(nil, err, "should be ok")
+	t.NoError(err, "should be ok")
 }

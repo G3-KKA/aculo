@@ -14,7 +14,7 @@ type SendEventResponse struct{}
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname MockService  --inpackage=true
 type Service interface {
-	SendEvent(context.Context, SendEventRequest) (SendEventResponse, error)
+	SendEvent(ctx context.Context, req SendEventRequest) (SendEventResponse, error)
 }
 
 type eventService struct {

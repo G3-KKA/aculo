@@ -3,8 +3,7 @@
 package service
 
 import (
-	domain "aculo/batch-inserter/domain"
-	context "context"
+	unifaces "aculo/batch-inserter/internal/unified/unifaces"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -14,22 +13,43 @@ type MockService struct {
 	mock.Mock
 }
 
-// SendBatch provides a mock function with given fields: _a0, _a1
-func (_m *MockService) SendBatch(_a0 context.Context, _a1 []domain.Event) error {
-	ret := _m.Called(_a0, _a1)
+// Tx provides a mock function with given fields:
+func (_m *MockService) Tx() (ServiceAPI, unifaces.TxClose, error) {
+	ret := _m.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for SendBatch")
+		panic("no return value specified for Tx")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, []domain.Event) error); ok {
-		r0 = rf(_a0, _a1)
+	var r0 ServiceAPI
+	var r1 unifaces.TxClose
+	var r2 error
+	if rf, ok := ret.Get(0).(func() (ServiceAPI, unifaces.TxClose, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() ServiceAPI); ok {
+		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(ServiceAPI)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func() unifaces.TxClose); ok {
+		r1 = rf()
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(unifaces.TxClose)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func() error); ok {
+		r2 = rf()
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // NewMockService creates a new instance of MockService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

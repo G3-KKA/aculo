@@ -10,7 +10,7 @@ type Group interface {
 	Chainable
 }
 type Attachable interface {
-	Attach(*gin.RouterGroup)
+	Attach(root *gin.RouterGroup)
 }
 type Chainable interface {
 	Chain(root *gin.RouterGroup) *gin.RouterGroup

@@ -1,0 +1,41 @@
+services:
+  batch-inserter:
+    privileged: true
+    build: .
+    command: ./script.sh
+    environment:
+      - INTEGRATION_TEST=true
+#    depends_on:
+#      - kafka
+#      - ch
+    volumes: 
+      # inserts integration-test-specific configuration
+      - ./.env:/app/.env
+      - ./config.yaml:/app/config.yaml
+      # maps host .log file to integration-test-container .log file
+      - ./integr_log.log:/app/tmp/integr_log.log
+      - ./script.sh:/app/script.sh
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "echo", "0"] # WORKS !, эхо возвращает 0 код, как видимо и любой успешный вызов утилиты  
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+#  kafka:
+#    networks:
+#      - test_network    
+#  ch:
+#    networks:
+#      - test_network
+  
+  dummy:
+    image: alpine:latest
+    command: sleep infinity
+    depends_on:
+      batch-inserter:
+        condition: service_healthy
+networks:
+  test_network:
+    driver: bridge

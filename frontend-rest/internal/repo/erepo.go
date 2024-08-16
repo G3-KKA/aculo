@@ -3,6 +3,7 @@ package repository
 import (
 	"aculo/frontend-restapi/domain"
 	"aculo/frontend-restapi/internal/config"
+	log "aculo/frontend-restapi/internal/logger"
 	"context"
 	"fmt"
 	"net"
@@ -22,18 +23,21 @@ type GetEventResponse struct {
 
 //go:generate mockery --filename=mock_repository.go --name=Repository --dir=. --structname MockRepository  --inpackage=true
 type Repository interface {
-	GetEvent(context.Context, GetEventRequest) (GetEventResponse, error)
+	GetEvent(ctx context.Context, req GetEventRequest) (GetEventResponse, error)
 }
 
 func New(ctx context.Context, config config.Config) (Repository, error) {
-	conn, close, err := ErrorproofGetConnect()
+	conn, closeconn, err := ErrorproofGetConnect()
 	if err != nil {
 		return nil, err
 	}
 	go func() {
 		//  TODO ===========  close() нормальным способом ===========
 		<-ctx.Done()
-		close()
+		err := closeconn()
+		if err != nil {
+			log.Info("close error: ", err)
+		}
 	}()
 	repo := &eRepo{conn: conn}
 	return repo, nil

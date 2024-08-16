@@ -19,7 +19,10 @@ func logFileFromPath(path string) (*os.File, error) {
 	if err != nil {
 		// There is common case that directory doesn't exist
 		// So we try to create it
-		os.Mkdir(filepath.Dir(path), 0777)
+		err = os.Mkdir(filepath.Dir(path), 0777)
+		if err != nil {
+			return nil, err
+		}
 
 		// Retry to create log file
 		logfile, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
@@ -54,7 +57,7 @@ func syncOnTimout(logger *zap.SugaredLogger, syncTimeout time.Duration) (stop St
 				return
 			}
 			<-C
-			logger.Sync()
+			_ = logger.Sync()
 		}
 	}()
 	return stop

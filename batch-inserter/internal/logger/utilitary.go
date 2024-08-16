@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -11,20 +11,29 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var (
+	ErrNoCoresWasInitialized = errors.New("no cores was initialized")
+	ErrCantOpenLogfile       = errors.New("unsuccessful logger core initialization, cant open log file")
+	ErrUnknownEncoder        = errors.New("unknown encoder")
+)
+
 // TODO: There might be problems with /stderr and debugging go code via deluge
-func logFileFromPath(path string) (*os.File, error) {
+func assembleDestination(path string) (WriteSyncer, error) {
 
 	// Trying to create log file
 	logfile, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		// There is common case that directory doesn't exist
 		// So we try to create it
-		os.Mkdir(filepath.Dir(path), 0777)
+		err = os.Mkdir(filepath.Dir(path), 0777)
+		if err != nil {
+			return nil, err
+		}
 
 		// Retry to create log file
 		logfile, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 		if err != nil {
-			return nil, fmt.Errorf("unsuccessful logger core initialization, cannot open log file")
+			return nil, errors.Join(ErrCantOpenLogfile, err)
 		}
 	}
 	return logfile, nil
@@ -40,10 +49,11 @@ func setEncoder(name string) (zapcore.Encoder, error) {
 	if name == "development" {
 		return zapcore.NewJSONEncoder(zap.NewDevelopmentEncoderConfig()), nil
 	}
-	return nil, fmt.Errorf("unknown encoder: %s", name)
+	err := errors.New("unknown encoder name: " + name)
+	return nil, errors.Join(ErrUnknownEncoder, err)
 }
 
-// Calls .Sync() for provided logger every syncTimeout
+// Calls .Sync() for  every syncTimeout
 func syncOnTimout(logger *zap.SugaredLogger, syncTimeout time.Duration) (stop StopFunc) {
 	go func() {
 		var ticker *StopableTicker
@@ -55,7 +65,7 @@ func syncOnTimout(logger *zap.SugaredLogger, syncTimeout time.Duration) (stop St
 				return
 			}
 			<-C
-			logger.Sync()
+			_ = logger.Sync()
 		}
 	}()
 	return stop

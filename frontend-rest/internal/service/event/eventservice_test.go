@@ -45,12 +45,12 @@ func (t *testSuite) Test_Mock_GetEvent() {
 		Repo:        mock_repo,
 		Transformer: mock_transformer,
 	})
-	t.Equal(nil, err)
+	t.NoError(err)
 	_, err = service.GetEvent(context.TODO(), GetEventRequest{
 		EID: "1",
 	})
 
-	t.Equal(nil, err)
+	t.NoError(err)
 	/* t.Equal(struct{}{}, rsp.Event.(transfomer.TransformResponse).Data) */
 
 }
@@ -83,11 +83,11 @@ func (t *testSuite) Test_DependencyInjection_GetEvent() {
 		Repo:        DEPINJrepo,
 		Transformer: mock_transformer,
 	})
-	t.Equal(nil, err)
+	t.NoError(err)
 	_, err = service.GetEvent(context.TODO(), GetEventRequest{
 		EID: "1",
 	})
-	t.Equal(nil, err)
+	t.NoError(err)
 
 	/* t.Equal(struct{}{}, rsp.Event.(transfomer.TransformResponse).Data) */
 

@@ -1,63 +1,94 @@
 package controller
 
 import (
-	"aculo/batch-inserter/domain"
 	"aculo/batch-inserter/internal/config"
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
-type BatchProvider struct {
+// Generic thread safe storage for
+type BatchProvider[T any] struct {
 	inUse   []atomic.Bool
-	batches [][]domain.Event
+	batches [][]T
 
 	preallocSize int
 	batchSize    int
-	mx           *sync.RWMutex
+
+	reallocating atomic.Bool
+
+	mx *sync.RWMutex
 }
 
-func NewBatchProvider(ctx context.Context, config config.Config) *BatchProvider {
-	bprov := &BatchProvider{
+func NewBatchProvider[T any](ctx context.Context, config config.Config) *BatchProvider[T] {
+	bprov := &BatchProvider[T]{
+		// Evety atomic bool corresponds to one preallocated batch
 		inUse:   make([]atomic.Bool, config.BatchProvider.PreallocSize),
-		batches: make([][]domain.Event, config.BatchProvider.PreallocSize),
+		batches: make([][]T, config.BatchProvider.PreallocSize),
 
 		preallocSize: config.BatchProvider.PreallocSize,
-		batchSize:    config.Brocker.BatchSize,
+		batchSize:    config.Broker.BatchSize,
 		mx:           &sync.RWMutex{},
 	}
-	allocBatches(bprov.batches, config.Brocker.BatchSize)
+	allocBatches(bprov.batches, config.Broker.BatchSize)
 
 	return bprov
 
 }
-func allocBatches(batches [][]domain.Event, size int) {
-	for i := range len(batches) {
-		batches[i] = make([]domain.Event, size)
-	}
-}
 
-type ReturnFunc func()
+// # Using batch after [MustReturnFunc] will cause guaranteed datarace
+//
+// # Safe to call multiple times
+//
+// Not calling it will leak batches
+type MustReturnFunc func()
 
-func (p *BatchProvider) GetBatch() ([]domain.Event, ReturnFunc) {
-
+// Thread safe, allocation free
+// Every batch is preallocated til its , do not try to append to it it will cause immediate reallocation
+func (p *BatchProvider[T]) GetBatch() ([]T, MustReturnFunc) {
+	var returnCalled atomic.Bool
 	p.mx.RLock()
 	for i := range len(p.inUse) {
+
+		// Found a free batch
 		if p.inUse[i].CompareAndSwap(false, true) {
 			defer p.mx.RUnlock()
-			return p.batches[i], func() { p.inUse[i].Store(false) }
+			f := func() {
+
+				// Multi-Call safe measure
+				if returnCalled.CompareAndSwap(false, true) {
+					p.inUse[i].Store(false)
+				}
+			}
+			return p.batches[i], f
 		}
 	}
 	p.mx.RUnlock()
-
+	// If someone alredy reallocating, wait for it
+	// TODO Need to test for dataraces, bu seems legit for me
+	if !p.reallocating.CompareAndSwap(false, true) {
+		time.Sleep(10 * time.Millisecond)
+		return p.GetBatch()
+	}
 	p.mx.Lock()
 	defer p.mx.Unlock()
 	prevSize := len(p.batches[0])
-	p.inUse = make([]atomic.Bool, len(p.inUse)*2)
-	p.batches = make([][]domain.Event, len(p.batches)*2)
+	multiplier := 2
+	p.inUse = make([]atomic.Bool, len(p.inUse)*multiplier)
+	p.batches = make([][]T, len(p.batches)*multiplier)
 
 	allocBatches(p.batches, prevSize)
-
 	p.inUse[len(p.inUse)-1].Store(true)
-	return p.batches[len(p.batches)-1], func() { p.inUse[len(p.inUse)-1].Store(false) }
+	f := func() {
+		if returnCalled.CompareAndSwap(false, true) {
+			p.inUse[len(p.inUse)-1].Store(false)
+		}
+	}
+	return p.batches[len(p.batches)-1], f
+}
+func allocBatches[T any](batches [][]T, size int) {
+	for i := range len(batches) {
+		batches[i] = make([]T, size)
+	}
 }

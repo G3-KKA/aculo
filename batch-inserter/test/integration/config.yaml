@@ -1,0 +1,15 @@
+Logger:
+    SyncTimeout: 1s 
+    Cores:
+      - Name : volume_mapped_logfile
+        EncoderLevel: development
+        Path: "${WORKSPACE}/test/integration/integr.log"
+        Level : -1
+        MustCreateCore: true
+Broker:
+    Addresses:
+      - localhost:27730
+    BatchSize: 100
+    Topic: "integr_test"
+    BatchProvider:
+      PreallocSize: 3

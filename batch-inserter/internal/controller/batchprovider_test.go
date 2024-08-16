@@ -17,30 +17,30 @@ func TestBatchProvider(t *testing.T) {
 	suite.Run(t, new(BatchProviderTestSuite))
 }
 func (t *BatchProviderTestSuite) Test_NewBatchProvider_AllocationLogic() {
-	provider := NewBatchProvider(context.TODO(), config.Config{
-		Brocker: config.Brocker{
+	provider := NewBatchProvider[domain.Event](context.TODO(), config.Config{
+		Broker: config.Broker{
 			BatchSize: 100,
 			BatchProvider: config.BatchProvider{
 				PreallocSize: 10,
 			},
 		},
 	})
-	t.Equal(10, len(provider.inUse))
-	t.Equal(10, len(provider.batches))
-	t.Equal(100, len(provider.batches[0]))
+	t.Len(provider.inUse, 10)
+	t.Len(provider.batches, 10)
+	t.Len(provider.batches[0], 100)
 }
 func (t *BatchProviderTestSuite) Test_allocBatches() {
 	testSlice := make([][]domain.Event, 10)
-	t.Equal(0, len(testSlice[0]))
+	t.Empty(testSlice[0])
 	allocBatches(testSlice, 122)
-	t.Equal(10, len(testSlice))
-	t.Equal(122, len(testSlice[0]))
+	t.Len(testSlice[0], 122)
+	t.Len(testSlice, 10)
 	t.Equal(domain.Event{}, testSlice[0][0])
 }
 
 func (t *BatchProviderTestSuite) Test_GetBatch() {
-	provider := NewBatchProvider(context.TODO(), config.Config{
-		Brocker: config.Brocker{
+	provider := NewBatchProvider[domain.Event](context.TODO(), config.Config{
+		Broker: config.Broker{
 			BatchSize: 100,
 			BatchProvider: config.BatchProvider{
 				PreallocSize: 10,
@@ -48,9 +48,9 @@ func (t *BatchProviderTestSuite) Test_GetBatch() {
 		},
 	})
 	batch, returnToProviderFunc := provider.GetBatch()
-	t.Equal(true, provider.inUse[0].Load())
-	t.Equal(100, len(batch))
-	t.Equal(100, len(provider.batches[0]))
+	t.True(provider.inUse[0].Load())
+	t.Len(batch, 100)
+	t.Len(provider.batches[0], 100)
 	event := domain.Event{
 		EID:        "1",
 		ProviderID: "1",
@@ -61,5 +61,5 @@ func (t *BatchProviderTestSuite) Test_GetBatch() {
 	batch[0] = event
 	t.Equal(batch[0], provider.batches[0][0])
 	returnToProviderFunc()
-	t.Equal(false, provider.inUse[0].Load())
+	t.False(provider.inUse[0].Load())
 }

@@ -29,8 +29,8 @@ type eventGroup struct {
 	service eservice.EventService
 }
 
-func (egroup *eventGroup) Attach(root *gin.RouterGroup) {
-	_ = egroup.Chain(root)
+func (g *eventGroup) Attach(root *gin.RouterGroup) {
+	_ = g.Chain(root)
 
 }
 func (g *eventGroup) Chain(root *gin.RouterGroup) *gin.RouterGroup {

@@ -2,7 +2,8 @@ package swaggergroup
 
 import (
 	"aculo/frontend-restapi/internal/controller/groups"
-
+	// In the future we might want to change docs in code,
+	// but now we just need to import it, for swagger to work
 	_ "aculo/frontend-restapi/docs"
 
 	"github.com/gin-gonic/gin"

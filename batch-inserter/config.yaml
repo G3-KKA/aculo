@@ -4,12 +4,12 @@ Logger:
       - Name : stderr
         EncoderLevel: production
         Path: /dev/stderr
-        Level : 0
+        Level : 0 # info
         MustCreateCore: false
       - Name : logfile
         EncoderLevel: production
         Path: "${WORKSPACE}/tmp/log.log"
-        Level : -1
+        Level : -1 # debug
         MustCreateCore: true
 Broker:
     Addresses:
