@@ -1,16 +1,20 @@
 FROM golang:1.22.5-alpine3.20 AS builder
-WORKDIR /app
-RUN apk add make
+ARG DOCKER_WORKDIR=/app
+ARG APP
+
+WORKDIR ${DOCKER_WORKDIR}
 COPY . .
+RUN apk add bash 
 # Change make on appmanager.sh run 
-RUN make build
+RUN bash -c "./appmanager.sh build"
 
 # FROM debian:bookworm AS runner
 FROM alpine:3.20 AS runner
-WORKDIR /app
+WORKDIR ${DOCKER_WORKDIR}
 
-COPY --from=builder /app/bin/batch-inserter ./bin/
-COPY --from=builder /app/makefile ./
+COPY --from=builder /${DOCKER_WORKDIR}/bin/${APP} ./bin/
+COPY --from=builder /${DOCKER_WORKDIR}/appmanager.sh ./
 # Change make on appmanager.sh run 
-RUN apk add make
-CMD make run
+RUN apk add bash 
+# Change make on appmanager.sh run 
+CMD bash -c "./appmanager.sh run"   
