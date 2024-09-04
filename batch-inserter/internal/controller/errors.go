@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	ErrFailedToCloseConsumer = errors.New("failed to close consumer")
+	ErrFailedToCloseConsumer          = errors.New("failed to close consumer")
+	ErrRetryNotWorksConnectionRefused = errors.New("retry not works, connection refused")
 )

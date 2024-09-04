@@ -1,6 +1,0 @@
-
-
-echo1:
-	echo mario 
-
-build-with-echo : echo1	

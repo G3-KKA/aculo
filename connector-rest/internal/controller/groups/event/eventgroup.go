@@ -2,7 +2,8 @@ package event
 
 import (
 	"aculo/connector-restapi/internal/config"
-	"aculo/connector-restapi/internal/controller/groups"
+	"aculo/connector-restapi/internal/logger"
+	"aculo/connector-restapi/internal/request"
 	"aculo/connector-restapi/internal/service"
 	"context"
 	"io"
@@ -19,7 +20,7 @@ import (
 	getEvent(gctx *gin.Context)
 } */
 
-func NewEventGroup(ctx context.Context, config config.Config, service service.Service) groups.Group {
+func NewEventGroup(ctx context.Context, config config.Config, service service.Service) *eventGroup {
 	return &eventGroup{
 		service: service,
 	}
@@ -59,6 +60,14 @@ func (g *eventGroup) sendSingleEvent(gctx *gin.Context) {
 		})
 		return
 	}
+	gctx.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+	})
+
+	err = gctx.Request.Body.Close()
+	if err != nil {
+		logger.Error(err.Error())
+	}
 	topic := gctx.Query("topic")
 	if topic == "" {
 		gctx.JSON(http.StatusBadRequest, gin.H{
@@ -67,20 +76,13 @@ func (g *eventGroup) sendSingleEvent(gctx *gin.Context) {
 		return
 	}
 	// TODO : resp may be useless here
-	_, err = g.service.SendEvent(context.TODO(), service.SendEventRequest{
+	_, err = g.service.SendEvent(context.TODO(), request.SendEventRequest{
 		Topic: topic,
 		Event: body,
 	})
 	if err != nil {
-		gctx.JSON(http.StatusBadRequest, gin.H{
-			"status": err.Error(),
-		})
-		return
+		logger.Error(err.Error())
 	}
-
-	gctx.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-	})
 
 }
 

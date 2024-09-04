@@ -11,8 +11,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+//go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname MockController  --inpackage=true
+type Controller interface {
+	Serve() error
+}
 type App struct {
-	controller controller.Controller
+	controller Controller
 }
 
 func Run() (err error) {
@@ -23,6 +27,7 @@ func Run() (err error) {
 		return err
 	}
 	initConfig := config.Get()
+	config.Print(initConfig)
 
 	// Logger initialization
 	err = log.InitGlobalLogger(config.Get())

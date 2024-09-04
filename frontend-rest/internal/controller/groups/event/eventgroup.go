@@ -4,6 +4,7 @@ import (
 	"aculo/frontend-restapi/domain"
 	"aculo/frontend-restapi/internal/config"
 	"aculo/frontend-restapi/internal/controller/groups"
+	"aculo/frontend-restapi/internal/request"
 	eservice "aculo/frontend-restapi/internal/service/event"
 	"context"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 )
 
 // Shared state of all */event/* routes
+var _ EventGroup = (*eventGroup)(nil)
 
 type EventGroup interface {
 	groups.Group
@@ -19,7 +21,7 @@ type EventGroup interface {
 	getEvent(gctx *gin.Context)
 }
 
-func NewEventGroup(ctx context.Context, config config.Config, service eservice.EventService) groups.Group {
+func NewEventGroup(ctx context.Context, config config.Config, service eservice.EventService) *eventGroup {
 	return &eventGroup{
 		service: service,
 	}
@@ -50,7 +52,7 @@ func (g *eventGroup) makeEvent(gctx *gin.Context) {
 // @Tags         events
 // @Accept       json
 // @Produce      json
-// @Param        eid   path      integer  true  "Enevent ID"
+// @Param        eid   path      string  true  "Enevent ID"
 // @Success      200  {object}  Rsp200
 // @Failure      400  {object}  Error
 // @Failure      500  {object}  Error
@@ -62,7 +64,7 @@ func (g *eventGroup) getEvent(gctx *gin.Context) {
 			"message": "eid required",
 		})
 	}
-	rsp, err := g.service.GetEvent(context.TODO(), eservice.GetEventRequest{
+	rsp, err := g.service.GetEvent(context.TODO(), request.GetEventRequest{
 		EID: reqEID})
 
 	if err != nil {

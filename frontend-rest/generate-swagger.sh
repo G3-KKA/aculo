@@ -1,0 +1,1 @@
+swag init -o ./docs -g ./api/api.go

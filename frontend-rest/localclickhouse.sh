@@ -1,0 +1,1 @@
+docker run -p 9000:9000 -p 8123:8123 clickhouse/clickhouse-server

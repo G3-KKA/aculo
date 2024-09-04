@@ -3,7 +3,8 @@ package eventservice
 import (
 	"aculo/frontend-restapi/domain"
 	"aculo/frontend-restapi/internal/config"
-	eventrepository "aculo/frontend-restapi/internal/repo"
+	repository "aculo/frontend-restapi/internal/repo"
+	"aculo/frontend-restapi/internal/request"
 	"aculo/frontend-restapi/internal/service/transfomer"
 	testutils "aculo/frontend-restapi/internal/tests"
 	"context"
@@ -24,10 +25,10 @@ func (t *testSuite) SetupSuite() {
 }
 
 func (t *testSuite) Test_Mock_GetEvent() {
-	mock_repo := eventrepository.NewMockEventRepository(t.T())
-	mock_repo.On("GetEvent", context.TODO(), eventrepository.GetEventRequest{
+	mock_repo := repository.NewMockRepository(t.T())
+	mock_repo.On("GetEvent", context.TODO(), request.GetEventRequest{
 		EID: "1",
-	}).Return(eventrepository.GetEventResponse{
+	}).Return(request.GetEventResponse{
 		Event: domain.Event{
 			Data: ("[INFO] other me mario"),
 		},
@@ -46,7 +47,7 @@ func (t *testSuite) Test_Mock_GetEvent() {
 		Transformer: mock_transformer,
 	})
 	t.NoError(err)
-	_, err = service.GetEvent(context.TODO(), GetEventRequest{
+	_, err = service.GetEvent(context.TODO(), request.GetEventRequest{
 		EID: "1",
 	})
 
@@ -59,11 +60,11 @@ type depInjRepository struct {
 	db map[string]string
 }
 
-func (d *depInjRepository) GetEvent(ctx context.Context, req eventrepository.GetEventRequest) (eventrepository.GetEventResponse, error) {
+func (d *depInjRepository) GetEvent(ctx context.Context, req request.GetEventRequest) (request.GetEventResponse, error) {
 	retevent := domain.Event{
 		Data: (d.db[req.EID]),
 	}
-	return eventrepository.GetEventResponse{
+	return request.GetEventResponse{
 		Event: retevent,
 	}, nil
 }
@@ -84,7 +85,7 @@ func (t *testSuite) Test_DependencyInjection_GetEvent() {
 		Transformer: mock_transformer,
 	})
 	t.NoError(err)
-	_, err = service.GetEvent(context.TODO(), GetEventRequest{
+	_, err = service.GetEvent(context.TODO(), request.GetEventRequest{
 		EID: "1",
 	})
 	t.NoError(err)

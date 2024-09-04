@@ -1,2 +1,0 @@
-curl -X 'GET' \                                                                                                                                   20:19:58
-        'http://localhost:8080/event/1'

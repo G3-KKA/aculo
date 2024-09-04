@@ -13,15 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname MockController  --inpackage=true
-type Controller interface {
-	Serve() error
-}
 type server struct {
-	HTTPServer http.Server
+	serverHTTP http.Server
 }
 
-func New(ctx context.Context, cfg config.Config, service service.Service) (Controller, error) {
+func New(ctx context.Context, cfg config.Config, service service.Service) (*server, error) {
 	rootEndpoints := []groups.Attachable{
 		swaggergroup.NewSwaggerGroup(),
 	}
@@ -42,6 +38,6 @@ func New(ctx context.Context, cfg config.Config, service service.Service) (Contr
 	return &srv, nil
 }
 func (srv *server) Serve() error {
-	log.Info("Serving on: ", srv.HTTPServer.Addr)
-	return srv.HTTPServer.ListenAndServe()
+	log.Info("Serving on: ", srv.serverHTTP.Addr)
+	return srv.serverHTTP.ListenAndServe()
 }

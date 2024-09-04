@@ -33,6 +33,7 @@ func TestController(t *testing.T) {
 	suite.Run(t, new(ControllerTestSuite_Intgr))
 }
 
+const INTER_TEST_TOPIC = "intertesttopic"
 const DEBUG2 = true
 
 func (t *ControllerTestSuite_Intgr) SetupSuite() {
@@ -71,6 +72,7 @@ func (t *ControllerTestSuite_Intgr) SetupSuite() {
 		t.T().Log(args)
 	})
 	t.logger = mock_logger
+	config.Print(cfg)
 	t.logger.Info("integr_test_config:", cfg)
 
 	// Admin
@@ -95,7 +97,7 @@ func (t *ControllerTestSuite_Intgr) SetupSuite() {
 func (t *ControllerTestSuite_Intgr) BeforeTest(suiteName, testName string) {
 	switch testName {
 	case "Test_Integr_HandleBatch":
-		err := t.admin.CreateTopic(t.cfg.Broker.Topic, &sarama.TopicDetail{NumPartitions: 1, ReplicationFactor: 1}, false)
+		err := t.admin.CreateTopic(INTER_TEST_TOPIC, &sarama.TopicDetail{NumPartitions: 1, ReplicationFactor: 1}, false)
 		t.NoError(err)
 	default:
 	}
@@ -105,7 +107,7 @@ func (t *ControllerTestSuite_Intgr) BeforeTest(suiteName, testName string) {
 func (t *ControllerTestSuite_Intgr) AfterTest(suiteName, testName string) {
 	switch testName {
 	case "Test_Integr_HandleBatch":
-		err := t.admin.DeleteTopic(t.cfg.Broker.Topic)
+		err := t.admin.DeleteTopic(INTER_TEST_TOPIC)
 		t.NoError(err)
 	}
 }
@@ -127,7 +129,8 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 			return t.Equal(t.cfg.Broker.BatchSize, len(batch))
 		})).Return(nil)
 
-	mock_serviceapi.On("GracefulShutdown").Return(nil)
+	// NOW IT HAPPENS IN masternode
+	//mock_serviceapi.On("GracefulShutdown").Return(nil)
 
 	// Mock Service
 	mock_service := service.NewMockService(t.T())
@@ -138,9 +141,14 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 
 	// Controller
 	ctx, cancel := context.WithCancel(context.Background())
-	ctrl, err := New(ctx, config.Config{
-		Broker: t.cfg.Broker,
-	}, t.logger, mock_service) // TODO
+	ctrl, err := New(ctx,
+		INTER_TEST_TOPIC,
+		config.Config{
+			Broker: t.cfg.Broker,
+		},
+		t.logger,
+		mock_service,
+	) // TODO
 	t.NoError(err)
 
 	// Real producer
@@ -151,7 +159,7 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 
 		defer producer.Close()
 		msg := &sarama.ProducerMessage{
-			Topic: t.cfg.Broker.Topic,
+			Topic: INTER_TEST_TOPIC,
 			Value: sarama.ByteEncoder(reqdata),
 		}
 		for {
@@ -223,20 +231,18 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 		return
 	case <-controllerchan:
 	}
-	rawctl, ok := ctrl.(*controller)
-	t.True(ok)
-	t.True(rawctl.unavailable.Load())
-	for i := range len(rawctl.batchprovider.inUse) {
-		t.False(rawctl.batchprovider.inUse[i].Load())
+	t.True(ctrl.unavailable.Load())
+	for i := range len(ctrl.batchprovider.inUse) {
+		t.False(ctrl.batchprovider.inUse[i].Load())
 	}
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()
-	err = rawctl.HandleBatch(ctx)
+	err = ctrl.HandleBatch(ctx)
 	t.ErrorIs(err, unierrors.ErrOperationInterrupted)
-	_, txclose, err := rawctl.Tx()
+	_, txclose, err := ctrl.Tx()
 	t.ErrorIs(err, unierrors.ErrUnavailable)
 	txclose()
-	err = rawctl.GracefulShutdown()
+	err = ctrl.GracefulShutdown()
 	// Tx
 	t.ErrorIs(err, unierrors.ErrUnavailable)
 	// TODO: Hardcoded .continue path

@@ -61,6 +61,7 @@ var environment = [...]string{
 type Config struct {
 	Logger     `mapstructure:"Logger"`
 	HTTPServer `mapstructure:"HTTPServer"`
+	Repository `mapstructure:"Repository"`
 }
 type Logger struct {
 	SyncTimeout time.Duration `mapstructure:"SyncTimeout"`
@@ -75,6 +76,9 @@ type Logger struct {
 type HTTPServer struct {
 	ListeningAddress string `mapstructure:"ListeningAddress"`
 	Port             string `mapstructure:"Port"`
+}
+type Repository struct {
+	Addresses []string `mapstructure:"Addresses"`
 }
 
 // Command line arguments, use pfalg, see example

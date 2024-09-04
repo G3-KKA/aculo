@@ -25,6 +25,7 @@ func Run() (err error) {
 		return err
 	}
 	initConfig := config.Get()
+	config.Print(initConfig)
 
 	// Logger initialization
 	err = log.InitGlobalLogger(initConfig)

@@ -3,6 +3,7 @@
 package service
 
 import (
+	request "aculo/connector-restapi/internal/request"
 	context "context"
 
 	mock "github.com/stretchr/testify/mock"
@@ -14,25 +15,25 @@ type MockService struct {
 }
 
 // SendEvent provides a mock function with given fields: ctx, req
-func (_m *MockService) SendEvent(ctx context.Context, req SendEventRequest) (SendEventResponse, error) {
+func (_m *MockService) SendEvent(ctx context.Context, req request.SendEventRequest) (request.SendEventResponse, error) {
 	ret := _m.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SendEvent")
 	}
 
-	var r0 SendEventResponse
+	var r0 request.SendEventResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, SendEventRequest) (SendEventResponse, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, request.SendEventRequest) (request.SendEventResponse, error)); ok {
 		return rf(ctx, req)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, SendEventRequest) SendEventResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, request.SendEventRequest) request.SendEventResponse); ok {
 		r0 = rf(ctx, req)
 	} else {
-		r0 = ret.Get(0).(SendEventResponse)
+		r0 = ret.Get(0).(request.SendEventResponse)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, SendEventRequest) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, request.SendEventRequest) error); ok {
 		r1 = rf(ctx, req)
 	} else {
 		r1 = ret.Error(1)

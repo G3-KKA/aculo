@@ -40,7 +40,7 @@ func (l NamedLevel) Name() string {
 
 // []NamedLevel may be used to change specific output destination log levels
 // Changing them in runtime is tread safe
-func AssembleLogger(config config.Config) (Logger, []NamedLevel, error) {
+func AssembleLogger(config config.Config) (*zap.SugaredLogger, []NamedLevel, error) {
 
 	levels := make([]NamedLevel, 0, len(config.Logger.Cores))
 

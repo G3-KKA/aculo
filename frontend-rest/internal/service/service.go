@@ -21,7 +21,7 @@ type BuildServiceRequest struct {
 	Repo repository.Repository
 }
 
-func New(ctx context.Context, config config.Config, repo repository.Repository) (Service, error) {
+func New(ctx context.Context, config config.Config, repo repository.Repository) (*service, error) {
 
 	eservice, err := eventservice.New(ctx, config, eventservice.BuildEserviceRequest{
 		Repo:        repo,

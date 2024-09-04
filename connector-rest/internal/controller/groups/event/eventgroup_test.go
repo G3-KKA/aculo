@@ -2,6 +2,7 @@ package event
 
 import (
 	"aculo/connector-restapi/internal/config"
+	"aculo/connector-restapi/internal/request"
 	"aculo/connector-restapi/internal/service"
 	"aculo/connector-restapi/internal/testutils"
 	"context"
@@ -37,11 +38,11 @@ func (t *EventgroupTestSuite) Test_sendSingleEvent() {
 	time.Sleep(1 * time.Second)
 
 	mock_service := service.NewMockService(t.T())
-	serviceReq := service.SendEventRequest{
+	serviceReq := request.SendEventRequest{
 		Topic: "test",
 		Event: []byte(`{"id": "1","name": "joe"}`),
 	}
-	mock_service.On("SendEvent", context.TODO(), serviceReq).Return(service.SendEventResponse{}, error(nil))
+	mock_service.On("SendEvent", context.TODO(), serviceReq).Return(request.SendEventResponse{}, error(nil))
 
 	gin.SetMode(gin.TestMode)
 	testrouter := gin.Default()

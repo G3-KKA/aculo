@@ -73,9 +73,9 @@ type LoggerCore struct {
 	MustCreateCore bool   `mapstructure:"MustCreateCore"` // false = ignore if core init fails
 }
 type Broker struct {
-	Addresses     []string `mapstructure:"Addresses"`
-	BatchSize     int      `mapstructure:"BatchSize"`
-	Topic         string   `mapstructure:"Topic"`
+	Addresses []string `mapstructure:"Addresses"`
+	BatchSize int      `mapstructure:"BatchSize"`
+	// Topic         string   `mapstructure:"Topic"`
 	BatchProvider `mapstructure:"BatchProvider"`
 }
 
@@ -83,6 +83,7 @@ type BatchProvider struct {
 	PreallocSize int `mapstructure:"PreallocSize"`
 }
 type Repository struct {
+	Addresses []string `mapstructure:"Addresses"`
 }
 
 // Environment variables validates automatically

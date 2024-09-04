@@ -39,7 +39,7 @@ const docTemplate = `{
                 "summary": "Get event by EID(UUID)",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Enevent ID",
                         "name": "eid",
                         "in": "path",

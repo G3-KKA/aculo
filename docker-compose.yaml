@@ -11,6 +11,7 @@ services:
     networks:
       main-network:  
     environment:
+
       # Должно быть уникально для каждого узла
       KAFKA_CFG_NODE_ID: 0   
       # Должно быть одинаковое для всех узлов в кластере
@@ -25,22 +26,31 @@ services:
       # Или же??? 
       # То что к нам приходит на kafka0:9093 
       # -- будет рассматриватсья как CONTROLLER
-      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka0:29093,INTERNAL://kafka0:29092,EXTERNAL://0.0.0.0:9092,DOCKERNETWORK://kafka0:29094' #__CHG_IF_NEW_NODE__
+      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka0:29093,INTERNAL://kafka0:29092,EXTERNAL://0.0.0.0:9092,DOCKERNETWORK://kafka0:29094,IN_CONTAINER_LOCAL://127.0.0.1:29095' #__CHG_IF_NEW_NODE__
 
       # Это мы отдаем обратно, как метаданные
       #  , к которым по вторичному подключению
       #  уже пойдет клиент которому нужен брокер
-      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka0:29092,EXTERNAL://localhost:9092,DOCKERNETWORK://kafka0:29094' #__CHG_IF_NEW_NODE__
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT' #__CHG_IF_NEW_NODE__
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka0:29092,EXTERNAL://localhost:9092,DOCKERNETWORK://kafka0:29094,IN_CONTAINER_LOCAL://127.0.0.1:29095' #__CHG_IF_NEW_NODE__
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT,IN_CONTAINER_LOCAL:PLAINTEXT' #__CHG_IF_NEW_NODE__
+    volumes:
+      - ./kafkawait.sh:/kafkawait.sh:rw
+    healthcheck:
+      test: "/kafkawait.sh"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
   kafka1:
     # env_file:
     #   -  TODO
     image: 'bitnami/kafka:3.7.1'
+    restart: unless-stopped
     ports:
       - '9093:9093'
     networks:
       main-network:   
-    restart: unless-stopped
+
     environment:
       # Должно быть уникально для каждого узла
       KAFKA_CFG_NODE_ID: 1
@@ -56,24 +66,35 @@ services:
       # Или же???
       # То что к нам приходит на kafka1:9093
       # -- будет рассматриватсья как CONTROLLER
-      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka1:29093,INTERNAL://kafka1:29092,EXTERNAL://0.0.0.0:9093,DOCKERNETWORK://kafka1:29094' #__CHG_IF_NEW_NODE__
+      KAFKA_CFG_LISTENERS: 'CONTROLLER://kafka1:29093,INTERNAL://kafka1:29092,EXTERNAL://0.0.0.0:9093,DOCKERNETWORK://kafka1:29094,IN_CONTAINER_LOCAL://127.0.0.1:29095' #__CHG_IF_NEW_NODE__
 
       # Это мы отдаем обратно, как метаданные
       #  , к которым по вторичному подключению
       #  уже пойдет клиент которому нужен брокер
-      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka1:29092,EXTERNAL://localhost:9093,DOCKERNETWORK://kafka1:29094' #__CHG_IF_NEW_NODE__
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'INTERNAL://kafka1:29092,EXTERNAL://localhost:9093,DOCKERNETWORK://kafka1:29094,IN_CONTAINER_LOCAL://127.0.0.1:29095' #__CHG_IF_NEW_NODE__
 
       # SECURITY
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT' #__CHG_IF_NEW_NODE__
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKERNETWORK:PLAINTEXT,IN_CONTAINER_LOCAL:PLAINTEXT' #__CHG_IF_NEW_NODE__
+    volumes:
+      - ./kafkawait.sh:/kafkawait.sh:rw
+    healthcheck:
+      test: "/kafkawait.sh"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
   kafka-ui:
     # env_file:
     #   -  TODO
     image: provectuslabs/kafka-ui:v0.7.2
+    restart: unless-stopped
     ports:
       - '7731:8080'
     depends_on:
-      - 'kafka0'
-      - 'kafka1'  
+      kafka0:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy  
     networks:
       main-network:    
     environment:
@@ -81,17 +102,87 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka0:29092,kafka1:29092'
   clickhouse:
     image: clickhouse/clickhouse-server:24.5.5
+    restart: unless-stopped
     ports:
       - '9000:9000'
       - '8123:8123'    
     networks:
       main-network: 
-volumes:
-  kafka0_data:
+    healthcheck:  
+      test: "wget --no-verbose --tries=1 --spider http://localhost:8123/ping"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ./logs/clickhouse-server.log:/var/log/clickhouse-server/clickhouse-server.log:rw
+      - ./clickhouse/nonsql/chdevcfg.xml:/etc/clickhouse-server/users.xml
+      - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d/
+  connector-rest:
+    build:
+      context: ./connector-rest
+      dockerfile: dockerfile
+      args:
+        APP: "connector-rest"
+    volumes:
+      - ./connector-rest/.env:/app/.env:ro
+      - ./connector-rest/compose_config.yaml:/app/config.yaml:ro
+      - ./logs/connector-rest.log:/app/tmp/log.log:rw
+    ports:
+      - '7732:7732'
+    depends_on:
+      kafka0:
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+    networks:
+      main-network:
+  batch-inserter:
+    build:
+      context: ./batch-inserter
+      dockerfile: dockerfile
+      args:
+        APP: "batch-inserter"
+    volumes:
+      - ./batch-inserter/.env:/app/.env:ro
+      - ./batch-inserter/compose_config.yaml:/app/config.yaml:ro
+      - ./logs/batch-inserter.log:/app/tmp/log.log:rw
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka0: # TODO , make intermediate container, healthcheck of it will signalize that all kafka's are healthy
+        condition: service_healthy
+      kafka1:
+        condition: service_healthy
+    networks:
+      main-network:
+  frontend-rest:
+    build:
+      context: ./frontend-rest
+      dockerfile: dockerfile
+      args:
+        APP: "frontend-rest"
+    volumes:
+      - ./frontend-rest/.env:/app/.env:ro
+      - ./frontend-rest/compose_config.yaml:/app/config.yaml:ro
+      - ./logs/frontend-rest.log:/app/tmp/log.log:rw
+    ports:
+      - '7733:7733'
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      main-network:
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      main-network:
 networks:
   main-network:
-    driver: bridge
-    
-
-
-  
+    driver: bridge  

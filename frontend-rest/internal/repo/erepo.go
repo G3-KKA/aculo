@@ -4,6 +4,7 @@ import (
 	"aculo/frontend-restapi/domain"
 	"aculo/frontend-restapi/internal/config"
 	log "aculo/frontend-restapi/internal/logger"
+	"aculo/frontend-restapi/internal/request"
 	"context"
 	"fmt"
 	"net"
@@ -14,20 +15,14 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
-type GetEventRequest struct {
-	EID string
-}
-type GetEventResponse struct {
-	Event domain.Event
-}
-
 //go:generate mockery --filename=mock_repository.go --name=Repository --dir=. --structname MockRepository  --inpackage=true
 type Repository interface {
-	GetEvent(ctx context.Context, req GetEventRequest) (GetEventResponse, error)
+	GetEvent(ctx context.Context, req request.GetEventRequest) (request.GetEventResponse, error)
 }
 
-func New(ctx context.Context, config config.Config) (Repository, error) {
-	conn, closeconn, err := ErrorproofGetConnect()
+func New(ctx context.Context, config config.Config) (*eRepo, error) {
+
+	conn, closeconn, err := ErrorproofGetConnect(config)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +44,7 @@ type eRepo struct {
 }
 
 // GetEvent implements EventRepository.
-func (e *eRepo) GetEvent(ctx context.Context, req GetEventRequest) (GetEventResponse, error) {
+func (e *eRepo) GetEvent(ctx context.Context, req request.GetEventRequest) (request.GetEventResponse, error) {
 	chCtx := clickhouse.Context(context.TODO(),
 		clickhouse.WithParameters(clickhouse.Parameters{
 			"eid": req.EID,
@@ -59,9 +54,9 @@ func (e *eRepo) GetEvent(ctx context.Context, req GetEventRequest) (GetEventResp
 
 	event := domain.Event{}
 	if err := row.ScanStruct(&event); err != nil {
-		return GetEventResponse{}, err
+		return request.GetEventResponse{}, err
 	}
-	return GetEventResponse{
+	return request.GetEventResponse{
 		Event: event,
 	}, nil
 
@@ -69,10 +64,10 @@ func (e *eRepo) GetEvent(ctx context.Context, req GetEventRequest) (GetEventResp
 
 // TODO make normal
 
-func Click() (driver.Conn, error) {
+func Click(cfg config.Config) (driver.Conn, error) {
 
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{"127.0.0.1:9000"}, // TODO get from config, stop hardcode
+		Addr: cfg.Addresses, // TODO get from config, stop hardcode
 		Auth: clickhouse.Auth{
 			Database: "default",
 			Username: "default",
@@ -118,7 +113,7 @@ func Click() (driver.Conn, error) {
 // Errorprone Get conn
 type ClickhouseCloseFunc func() error
 
-func ErrorproofGetConnect() (driver.Conn, ClickhouseCloseFunc, error) {
-	conn, err := Click()
+func ErrorproofGetConnect(cfg config.Config) (driver.Conn, ClickhouseCloseFunc, error) {
+	conn, err := Click(cfg)
 	return conn, ClickhouseCloseFunc(conn.Close), err
 }

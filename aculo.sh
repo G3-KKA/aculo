@@ -24,9 +24,20 @@ connector-rest)
 frontend-rest)
     ;;
 start)
-    echo "[INFO] Starting app ..."
-    echo "NOT IMPLEMENTED YET"
-    exit 1
+    echo "[INFO] Starting app ...                       "
+    echo "[INFO] Default behaviour:                     "
+    echo "       Images           >  Rebuild            "
+    echo "       Backup Old Logs  >  True               "
+    echo "       Backup Dir       >  ./logs/current_time"
+    echo "       Create New Logs  >  True               "
+    echo "       Detatch          >  False              "
+    echo ""
+
+    LOG_DIR=./logs ./aculo-manager.sh preserve-logs recreate 
+    
+    docker compose up --build
+
+    exit $?
     ;;
 h|-h|--h|help|-help|--help)
     echo "User-Friendly CLI interface built on top of aculo-manager.sh"
@@ -127,9 +138,29 @@ build-image)
     exit $?
 
 ;;
+run-image)
+    APP_ROOT=$(pwd)/${APP}
+    WORKSPACE=${APP_ROOT}
+
+    export WORKSPACE
+    export APP_ROOT
+
+    ./aculo-manager.sh run-image
+
+    exit $?
+;;
 test)
 ;;
 integr-test)
+    APP_ROOT=$(pwd)/${APP}
+    WORKSPACE=${APP_ROOT}/test/integration
+
+    export WORKSPACE
+    export APP_ROOT
+
+    ./aculo-manager.sh integr-test
+
+    exit $?
 ;;
 
 continue)

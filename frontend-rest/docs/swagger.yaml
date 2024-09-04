@@ -53,7 +53,7 @@ paths:
         in: path
         name: eid
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:

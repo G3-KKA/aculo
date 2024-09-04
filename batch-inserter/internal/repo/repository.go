@@ -22,7 +22,8 @@ var _ Repository = (*clickhouseRepo)(nil)
 
 //go:generate mockery --filename=mock_repository.go --name=Repository --dir=. --structname MockRepository  --inpackage=true
 type Repository interface {
-	Tx() (RepositoryAPI, unifaces.TxClose, error)
+	unifaces.Tx[RepositoryAPI]
+	RepositoryAPI
 }
 
 //go:generate mockery --filename=mock_repositoryapi.go --name=RepositoryAPI --dir=. --structname MockRepositoryAPI  --inpackage=true
@@ -56,6 +57,7 @@ func (repo *clickhouseRepo) GracefulShutdown() error {
 //
 // Safe to call multiple times, will return [unifaces.ErrTxAlreadyClosed].
 // This error may be ommited, because multi-call cannot break logic
+
 func (repo *clickhouseRepo) Tx() (RepositoryAPI, unifaces.TxClose, error) {
 
 	if repo.unavailable.Load() {
@@ -74,9 +76,8 @@ func (repo *clickhouseRepo) Tx() (RepositoryAPI, unifaces.TxClose, error) {
 	return repo, unifaces.TxClose(f), nil
 
 }
-func New(ctx context.Context, config config.Config, l logger.Logger) (Repository, error) {
-	// Ignoring close func, because it will be called on graceful shutdown
-	conn, _, err := Click()
+func New(ctx context.Context, config config.Config, l logger.Logger) (*clickhouseRepo, error) {
+	conn, err := Click(config)
 	if err != nil {
 		return nil, err
 	}
@@ -103,11 +104,11 @@ func (c *clickhouseRepo) SendBatch(ctx context.Context, eventbatch []domain.Even
 			c.logger.Info(err)
 			return err
 		}
-		err = batch.Append()
-		if err != nil {
-			c.logger.Info(err)
-			return err
-		}
+		/* 		err = batch.Append()
+		   		if err != nil {
+		   			c.logger.Info(err)
+		   			return err
+		   		} */
 	}
 	err = batch.Send()
 	if err != nil {
@@ -120,10 +121,10 @@ func (c *clickhouseRepo) SendBatch(ctx context.Context, eventbatch []domain.Even
 // =========================== ПОДКЛЮЧЕНИЕ НИКОГДА НЕ ЗАКРЫВАЕТСЯ, ИСПРАВИТЬ ============================
 // Get conn
 // КУЧА ХАРДКОДА
-func Click() (driver.Conn, func() error, error) {
+func Click(cfg config.Config) (driver.Conn, error) {
 
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{"127.0.0.1:9000"},
+		Addr: cfg.Repository.Addresses,
 		Auth: clickhouse.Auth{
 			Database: "default",
 			Username: "default",
@@ -160,9 +161,8 @@ func Click() (driver.Conn, func() error, error) {
 		},
 	})
 	if err != nil {
-		return nil, func() error { return err }, err
+		return nil, err
 	}
-	conn.Close()
-	return conn, conn.Close, conn.Ping(context.Background())
+	return conn, conn.Ping(context.Background())
 
 }

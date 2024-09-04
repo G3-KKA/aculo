@@ -18,11 +18,13 @@ type Controller interface {
 	Serve() error
 }
 
+var _ Controller = (*frontServer)(nil)
+
 type frontServer struct {
 	stdServer *http.Server
 }
 
-func New(ctx context.Context, config config.Config, srvc service.Service) (Controller, error) {
+func New(ctx context.Context, config config.Config, srvc service.Service) (*frontServer, error) {
 	// Preparing endpoints
 	rootEndpoints := []groups.Attachable{
 		event.NewSpecialGroup(), swaggergroup.NewSwaggerGroup(),

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -20,23 +20,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	buf := bytes.Buffer{}
 	fmt.Println("size of batch >>>> hardcoded to 1000")
 	time.Sleep(150 * time.Millisecond)
 	fmt.Println("address >>>> hardcoded to http://localhost:7732/event/?topic=test")
 	time.Sleep(150 * time.Millisecond)
-
+	wg := sync.WaitGroup{}
+	wg.Add(1000)
 	for range 1000 {
-		buf.Write(mariobytes)
-		rsp, err := http.Post("http://localhost:7732/event/?topic=test", "application/json", &buf)
-		if err != nil {
-			panic(err)
-		}
-		sliice, err := io.ReadAll(rsp.Body)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(string(sliice))
-		rsp.Body.Close()
+		go func() {
+			buf := bytes.Buffer{}
+			for range 1000 {
+
+				defer wg.Done()
+				buf.Write(mariobytes)
+				rsp, err := http.Post("http://localhost:7732/event/?topic=test", "application/json", &buf)
+				buf.Reset()
+				if err != nil {
+					panic(err)
+				}
+				rsp.Body.Close()
+
+				//fmt.Println(string(sliice))
+			}
+		}()
 	}
+	wg.Wait()
 }

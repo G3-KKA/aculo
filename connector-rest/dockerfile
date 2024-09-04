@@ -1,19 +1,29 @@
 FROM golang:1.22.5-alpine3.20 AS builder
 
-WORKDIR /app
+ARG DOCKER_WORKDIR=/app
+ARG APP
 
+WORKDIR ${DOCKER_WORKDIR}
 COPY . .
-
 RUN apk add bash 
 
-RUN bash -c "./aculo-manager.sh build"
+ENV WORKSPACE=${DOCKER_WORKDIR}
+
+RUN bash -c " ./aculo-manager.sh build"
 
 FROM alpine:3.20 AS runner
-WORKDIR /app
 
-COPY --from=builder /app/bin/connector-rest ./bin/
-COPY --from=builder /app/aculo-manager.sh ./
+ARG DOCKER_WORKDIR=/app
+ARG APP
+
+WORKDIR ${DOCKER_WORKDIR}
+
+
+COPY --from=builder ${DOCKER_WORKDIR}/bin/${APP} ./bin/
+COPY --from=builder ${DOCKER_WORKDIR}/aculo-manager.sh .
 
 RUN apk add bash 
+
+ENV APP ${APP}
 
 CMD bash -c "./aculo-manager.sh run"   

@@ -12,12 +12,17 @@ import (
 	"sync/atomic"
 )
 
-var _ unifaces.Tx[ServiceAPI] = (*service)(nil)
-var _ Service = (*service)(nil)
+// Static check
+func _() {
+
+	var _ Service = (*service)(nil)
+	var _, _, _ = unifaces.Tx[ServiceAPI]((*service)(nil)).Tx()
+}
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname MockService  --inpackage=true
 type Service interface {
-	Tx() (ServiceAPI, unifaces.TxClose, error)
+	unifaces.Tx[ServiceAPI]
+	ServiceAPI
 }
 
 //go:generate mockery --filename=mock_service_api.go --name=ServiceAPI --dir=. --structname MockServiceAPI  --inpackage=true
@@ -25,9 +30,8 @@ type ServiceAPI interface {
 	SendBatch(ctx context.Context, batch []domain.Event) error
 	GracefulShutdown() error
 }
-
 type service struct {
-	repo   repository.Repository
+	repo   unifaces.Tx[repository.RepositoryAPI]
 	logger logger.Logger
 
 	unavailable atomic.Bool
@@ -84,7 +88,7 @@ func (s *service) SendBatch(ctx context.Context, eventbatch []domain.Event) erro
 	return api.SendBatch(ctx, eventbatch)
 
 }
-func New(ctx context.Context, config config.Config, l logger.Logger, repo repository.Repository) (Service, error) {
+func New(ctx context.Context, config config.Config, l logger.Logger, repo unifaces.Tx[repository.RepositoryAPI]) (*service, error) {
 
 	srvc := &service{
 		repo:   repo,

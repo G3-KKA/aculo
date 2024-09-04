@@ -22,6 +22,8 @@ func Run() (err error) {
 	if err != nil {
 		return err
 	}
+	config.Print(initConfig)
+
 	logger, _, err := logger.AssembleLogger(initConfig)
 	if err != nil {
 		return err
@@ -46,6 +48,9 @@ func Run() (err error) {
 	return
 
 }
+
+const TODO_REPLACE_WITH_MASTERNODE = "NOT_EXISTING_TOPIC"
+
 func newapp(ctx context.Context, conf config.Config, logger logger.Logger) (*App, error) {
 
 	repo, err := repository.New(ctx, conf, logger)
@@ -56,7 +61,7 @@ func newapp(ctx context.Context, conf config.Config, logger logger.Logger) (*App
 	if err != nil {
 		return nil, err
 	}
-	controller, err := controller.New(ctx, conf, logger, service)
+	controller, err := controller.New(ctx, TODO_REPLACE_WITH_MASTERNODE, conf, logger, service)
 
 	if err != nil {
 		return nil, err
@@ -67,6 +72,8 @@ func newapp(ctx context.Context, conf config.Config, logger logger.Logger) (*App
 }
 func (app *App) Serve(ctx context.Context) (err error) {
 
+	// HTTP innterface нужен здесь
+	// принимаем новый запрос на /metadata, запускае новый ctrl на топик
 	for {
 		select {
 		case <-ctx.Done():
@@ -86,5 +93,31 @@ func (app *App) Serve(ctx context.Context) (err error) {
 			return err
 		}
 	}
+
+}
+
+// OFFSET PROBLEM
+func (app *App) Serve2(ctx context.Context) (err error) {
+	errgroup := errgroup.Group{}
+	errgroup.SetLimit(10)
+	f := func() error {
+		ctrl, txclose, err := app.controller.Tx()
+		if err != nil {
+			return err
+		}
+		defer txclose()
+		return ctrl.HandleBatch(ctx)
+	}
+LOOP:
+	for {
+		select {
+		case <-ctx.Done():
+			break LOOP
+		default:
+		}
+
+		errgroup.Go(f)
+	}
+	return errgroup.Wait()
 
 }

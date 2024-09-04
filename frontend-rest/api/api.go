@@ -20,4 +20,6 @@ package api
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 
-//# swag init -o ../docs -g ../api/api.go
+// cd ..
+//# swag init -o ./docs -g ./api/api.go
+// https://github.com/swaggo/swag
