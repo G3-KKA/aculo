@@ -59,12 +59,6 @@ func (t *ControllerTestSuite_Intgr) SetupSuite() {
 	mock_logger.On("Debug", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		t.T().Log(args)
 	})
-	// mock_logger.On("Debug", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-	// 	t.T().Log(args)
-	// })
-	// mock_logger.On("Info", mock.Anything).Run(func(args mock.Arguments) {
-	// 	t.T().Log(args)
-	// })
 	mock_logger.On("Info", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		t.T().Log(args)
 	})
@@ -148,7 +142,7 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 		},
 		t.logger,
 		mock_service,
-	) // TODO
+	)
 	t.NoError(err)
 
 	// Real producer
@@ -232,8 +226,8 @@ func (t *ControllerTestSuite_Intgr) Test_Integr_HandleBatch() {
 	case <-controllerchan:
 	}
 	t.True(ctrl.unavailable.Load())
-	for i := range len(ctrl.batchprovider.inUse) {
-		t.False(ctrl.batchprovider.inUse[i].Load())
+	for i := range len(ctrl.batchprovider.used) {
+		t.False(ctrl.batchprovider.used[i].Load())
 	}
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()

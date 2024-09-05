@@ -3,41 +3,39 @@ package controller
 import (
 	"aculo/batch-inserter/internal/config"
 	"context"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 )
 
-type cacheLineOptimizedAtomicBool struct {
-	atomic.Bool
-	_ [64 - unsafe.Sizeof(atomic.Bool{})]byte
-}
-
-// Generic thread safe storage for Rewriteable Slices
+// Generic, thread safe storage for slices to rewrite
 type BatchProvider[T any] struct {
-	inUse   []cacheLineOptimizedAtomicBool
-	batches [][]T
 
-	// preallocSize int
-	batchSize int
+	// Slice of atomic bool's which index corresponds to one batch
+	// len(used) == len(batches)
+	used []atomic.Bool
+
+	//
+	batches [][]T
 
 	reallocating atomic.Bool
 
+	// RLock() in this case means that we are just trying to get batch
+	// Lock()  in the other hand means goroutine that will reallocate [used] and [batches]
+	//         while realloc happens this G needs serialised RW access to [used] and [batches]
 	mx *sync.RWMutex
 }
 
 func NewBatchProvider[T any](ctx context.Context, config config.Config) *BatchProvider[T] {
 	bp := &BatchProvider[T]{
 		// Evety atomic bool corresponds to one preallocated batch
-		inUse:   make([]cacheLineOptimizedAtomicBool, config.BatchProvider.PreallocSize),
+		used:    make([]atomic.Bool, config.BatchProvider.PreallocSize),
 		batches: make([][]T, config.BatchProvider.PreallocSize),
 
-		// preallocSize: config.BatchProvider.PreallocSize,
-		batchSize: config.Broker.BatchSize,
-		mx:        &sync.RWMutex{},
+		mx: &sync.RWMutex{},
 	}
-	allocBatches(bp.batches, config.Broker.BatchSize)
+	allocUnderlyingBatch(bp.batches, config.Broker.BatchSize)
 
 	return bp
 
@@ -47,61 +45,61 @@ func NewBatchProvider[T any](ctx context.Context, config config.Config) *BatchPr
 //
 // # Safe to call multiple times
 //
-// Not calling it will leak batches
+// Not calling it, batch will be blocked indefinitely
 type MustReturnFunc func()
 
-// Thread safe, allocation free
-// Every batch is preallocated til its , do not try to append to it it will cause immediate reallocation
+// # Get batch to rewrite
+//
+// Thread safe
 func (p *BatchProvider[T]) GetBatch() ([]T, MustReturnFunc) {
+	// This atomic used to ensure that used falg will be set by client to [false] exaclty once
 	var returnCalled atomic.Bool
+
+	// Potentially gopark() if reallocating
 	p.mx.RLock()
-	if len(p.batches) > 200 {
-		func() {
 
-		}()
-	}
-	for i := range len(p.inUse) {
+	// Search through every atomic
+	for i := range len(p.used) {
 
-		// Found a free batch
-		if p.inUse[i].CompareAndSwap(false, true) {
+		// Try acquire
+		if p.used[i].CompareAndSwap(false, true) {
 			defer p.mx.RUnlock()
-			f := func() {
-
-				// Multi-Call safe measure
-				if returnCalled.CompareAndSwap(false, true) {
-					p.inUse[i].Store(false)
+			f := func(used *atomic.Bool) func() {
+				return func() {
+					// Multiply f() call's safe measure, only first will store false
+					if returnCalled.CompareAndSwap(false, true) {
+						used.Store(false)
+					}
 				}
-			}
+			}(&p.used[i])
 			return p.batches[i], f
 		}
 	}
+	// Wait for all G's in search cycle
 	p.mx.RUnlock()
 	// If someone alredy reallocating, wait for it
 	// TODO Need to test for dataraces, bu seems legit for me
 	if !p.reallocating.CompareAndSwap(false, true) {
-		time.Sleep(10 * time.Millisecond)
 		return p.GetBatch()
 	}
 	p.mx.Lock()
 	prevSize := len(p.batches[0])
 	multiplier := 2
-	p.inUse = make([]cacheLineOptimizedAtomicBool, len(p.inUse)*multiplier)
+	p.used = make([]atomic.Bool, len(p.used)*multiplier)
 	p.batches = make([][]T, len(p.batches)*multiplier)
 
-	allocBatches(p.batches, prevSize)
-	//p.inUse[len(p.inUse)-1].Store(true)
-	/* 	f := func() {
-
-	if returnCalled.CompareAndSwap(false, true) {
-		p.inUse[len(p.inUse)-1].Store(false)
-		}
-		}
-	*/
-	p.reallocating.Store(false)
-	p.mx.Unlock()
+	allocUnderlyingBatch(p.batches, prevSize)
+	go func() {
+		os.Stderr.WriteString("imherer\n")
+		time.Sleep(300 * time.Millisecond) //  ЗДЕСЬ НАС ВЫТЕСНЯЮТ В ГЛОБАЛ РАН Q ???
+		p.reallocating.Store(false)
+		p.mx.Unlock()
+	}()
+	//time.Sleep(time.Duration(300) * time.Millisecond)
 	return p.GetBatch()
 }
-func allocBatches[T any](batches [][]T, size int) {
+
+func allocUnderlyingBatch[T any](batches [][]T, size int) {
 	for i := range len(batches) {
 		batches[i] = make([]T, size)
 	}

@@ -34,12 +34,6 @@ type ControllerAPI interface {
 	GracefulShutdown() error
 }
 
-/* type topicHandler struct {
-	api *topicHandler
-} */
-
-// TODO
-
 type topicHandler struct {
 	service       unifaces.Tx[service.ServiceAPI]
 	config        config.Config
