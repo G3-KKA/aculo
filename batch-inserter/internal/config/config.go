@@ -75,6 +75,7 @@ type LoggerCore struct {
 type Broker struct {
 	Addresses []string `mapstructure:"Addresses"`
 	BatchSize int      `mapstructure:"BatchSize"`
+	Offset    int64    `mapstructure:"Offset"`
 	// Topic         string   `mapstructure:"Topic"`
 	BatchProvider `mapstructure:"BatchProvider"`
 }

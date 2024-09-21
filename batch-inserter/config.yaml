@@ -16,6 +16,7 @@ Broker:
       - localhost:9092
       - localhost:9093
     BatchSize: 1000
+    Offset: -1 # sarama.OffsetNewest
     Topic: "test"
     BatchProvider:
       PreallocSize: 20

@@ -1,12 +1,6 @@
 package repository
 
-import (
-	"aculo/batch-inserter/internal/testutils"
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-)
-
+/*
 type RepoTestSuite_Integr struct {
 	suite.Suite
 }
@@ -18,10 +12,10 @@ func TestRepo_Integr(t *testing.T) {
 // ========================
 
 func (t *RepoTestSuite_Integr) SetupSuite() {
-	testutils.ThisIsIntegrationTest(t)
+	testmark.MarkAs(testmark.INTEGRATION_TEST, t)
 }
 func (t *RepoTestSuite_Integr) BeforeTest(suiteName, testName string) {
 	switch testName {
 	}
 
-}
+} */

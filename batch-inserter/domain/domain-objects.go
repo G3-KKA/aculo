@@ -1,7 +1,7 @@
 package domain
 
-type Event struct {
-	EID        string `json:"eid" ch:"eid"`
+type Log struct {
+	LogID      string `json:"lid" ch:"lid"`
 	ProviderID string `json:"provider_id" ch:"provider_id"`
 	SchemaID   string `json:"schema_id" ch:"schema_id"`
 	Type       string `json:"type" ch:"type"`

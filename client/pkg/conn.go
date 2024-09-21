@@ -9,5 +9,5 @@ type Conn interface {
 	io.WriteCloser
 }
 type ConfigCore struct {
-	Dst Destination
+	Dst string
 }

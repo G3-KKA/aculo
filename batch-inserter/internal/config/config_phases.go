@@ -10,9 +10,10 @@ import (
 
 // Initialaise config process
 // Every path in service works around single env WORKSPACE
+var once = sync.Once{}
+
 func initConfig() (err error) {
 
-	once := sync.Once{}
 	once.Do(func() {
 		pipeline := []initPhase{
 			setEnv,

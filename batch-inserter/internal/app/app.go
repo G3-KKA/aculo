@@ -2,7 +2,7 @@ package app
 
 import (
 	"aculo/batch-inserter/internal/config"
-	"aculo/batch-inserter/internal/controller"
+	"aculo/batch-inserter/internal/interfaces/txface"
 	"aculo/batch-inserter/internal/logger"
 	repository "aculo/batch-inserter/internal/repo"
 	"aculo/batch-inserter/internal/service"
@@ -12,7 +12,7 @@ import (
 )
 
 type App struct {
-	controller controller.Controller
+	controller txface.Tx[controller.ControllerAPI]
 }
 
 // ИНКАПСУЛИРОВАТЬ HTTP СЕРВЕР  В КОНТРОЛЛЕРА, ИБО КОНТРОЛЛЕР ЭТО ТАКЖЕ GRPC СЕРВИС И ОСТАЛЬНОЕ

@@ -15,6 +15,7 @@ type Event struct {
 }
 
 func main() {
+
 	mem := Event{Me: "mario", Mario: "me"}
 	mariobytes, err := json.Marshal(mem)
 	if err != nil {

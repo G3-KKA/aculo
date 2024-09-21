@@ -3,92 +3,185 @@ package service
 import (
 	"aculo/batch-inserter/domain"
 	"aculo/batch-inserter/internal/config"
+	"aculo/batch-inserter/internal/controller/broker"
+	"aculo/batch-inserter/internal/interfaces/txface"
 	"aculo/batch-inserter/internal/logger"
 	repository "aculo/batch-inserter/internal/repo"
 	"aculo/batch-inserter/internal/unified/unierrors"
-	"aculo/batch-inserter/internal/unified/unifaces"
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 )
 
 // Static check
 func _() {
-
 	var _ Service = (*service)(nil)
-	var _, _, _ = unifaces.Tx[ServiceAPI]((*service)(nil)).Tx()
+	var _, _, _ = txface.Tx[ServiceAPI]((*service)(nil)).Tx()
 }
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname MockService  --inpackage=true
 type Service interface {
-	unifaces.Tx[ServiceAPI]
-	ServiceAPI
+	txface.Tx[ServiceAPI]
 }
 
 //go:generate mockery --filename=mock_service_api.go --name=ServiceAPI --dir=. --structname MockServiceAPI  --inpackage=true
 type ServiceAPI interface {
-	SendBatch(ctx context.Context, batch []domain.Event) error
-	GracefulShutdown() error
+	SendBatch(ctx context.Context, batch []domain.Log) error
+	Shutdown() error
+	HandleNewClient(ctx context.Context) (topic string, err error)
+}
+type txprovider struct {
+	s      *service
+	repo   repository.Repository
+	broker broker.Broker
 }
 type service struct {
-	repo   unifaces.Tx[repository.RepositoryAPI]
+	//
+	repo txface.Tx[repository.RepositoryAPI] //txface.Tx[repository.RepositoryAPI]
+	//
+	broker txface.Tx[broker.BrokerAPI]
 	logger logger.Logger
 
 	unavailable atomic.Bool
 	mx          *sync.RWMutex
 }
 
+// HandleNewLogTopic implements ServiceAPI.
+func (s *service) HandleNewClient(ctx context.Context) (topic string, err error) {
+
+	//
+	broker, btxclose, err := s.broker.Tx()
+	if err != nil {
+		return "", err
+	}
+	defer btxclose()
+
+	// Get log channel
+	topic, err = broker.NewTopic(ctx)
+	if err != nil {
+		return "", err
+	}
+	logs, err := broker.HandleTopic(ctx, topic)
+	if err != nil {
+		broker.DeleteTopic(ctx, topic)
+		return "", err
+	}
+
+	//
+	repo, rtxclose, err := s.repo.Tx()
+	if err != nil {
+		err2 := broker.StopHandling(ctx, topic)
+		errors.Join(err2, err)
+		err2 = broker.DeleteTopic(ctx, topic)
+		errors.Join(err2, err)
+		return "", err
+	}
+	defer rtxclose()
+
+	// Send logs to repo
+	err = repo.HandleLogStream(ctx, logs)
+	if err != nil {
+		err2 := broker.StopHandling(ctx, topic)
+		errors.Join(err2, err)
+		err2 = broker.DeleteTopic(ctx, topic)
+		errors.Join(err2, err)
+		return "", err
+	}
+	return topic, err
+}
+
 // # Common middleware for all api calls
 //
-// Safe to call multiple times, will return [unifaces.ErrTxAlreadyClosed].
-// This error may be ommited, because multi-call cannot break logic
-func (s *service) Tx() (ServiceAPI, unifaces.TxClose, error) {
+// Safe to call [unifaces.TxClose] multiple times,
+// will return [unifaces.ErrTxAlreadyClosed] not breaking logic.
+func (s *service) Tx() (ServiceAPI, txface.Commit, error) {
 
 	if s.unavailable.Load() {
 		return nil, func() error { return unierrors.ErrUnavailable }, unierrors.ErrUnavailable
 	}
+
+	//
+	// Actually start the transaction
 	s.mx.RLock()
+	// TODO: if someone sets unavaliable = true AND acquire Write Lock()
+	// Faster than we take RLock -- we could  access memory that in process of shutting down
+	if s.unavailable.Load() {
+		s.mx.RUnlock()
+		return nil, func() error { return unierrors.ErrUnavailable }, unierrors.ErrUnavailable
+	}
+
+	//
+	// Multiple txclose() call safe measure
 	var closed atomic.Bool
-	f := func() error {
+	txclose := func() error {
+
 		if !closed.CompareAndSwap(false, true) {
-			return unifaces.ErrTxAlreadyClosed
+			return txface.ErrTxAlreadyClosed
 		}
+
 		s.mx.RUnlock()
 		return nil
 	}
-	return s, unifaces.TxClose(f), nil
+
+	return s, txface.Commit(txclose), nil
 
 }
 
 // GracefulShutdown implements
-func (s *service) GracefulShutdown() error {
+func (s *txprovider) Shutdown() error {
 	if s.unavailable.CompareAndSwap(false, true) {
-		// GracefulShutdown can be called only if Tx was called, so we need a bit of magic here
-		s.mx.RUnlock()
-		// Lock cant be acquired while Tx with
 		s.mx.Lock()
-		defer s.mx.RLock()
 		defer s.mx.Unlock()
-		service, txclose, err := s.repo.Tx()
-		defer txclose()
-		if err != nil {
-			return err
-		}
-		return service.GracefulShutdown()
+		return s.repo.S
 	}
 	return unierrors.ErrUnavailable
 }
 
-func (s *service) SendBatch(ctx context.Context, eventbatch []domain.Event) error {
-	api, txclose, err := s.repo.Tx()
+type Metadata struct {
+	topic   string
+	address string
+}
+
+/*
+func (s *service) HandleNewTopic(ctx context.Context) (topic string, err error) {
+
+	broker, txclose, err := s.broker.Tx()
+	if err != nil {
+		return "", err
+	}
+	defer txclose()
+
+	topic, err = broker.NewTopic(ctx)
+	if err != nil {
+		return "", err
+	}
+	logs, err := broker.HandleTopic(ctx, topic)
+	if err != nil {
+		err2 := broker.DeleteTopic(ctx, topic)
+		err = errors.Join(err, err2)
+		return "", err
+	}
+	return
+
+}
+*/
+func (s *service) SendBatch(ctx context.Context, eventbatch []domain.Log) error {
+	repoapi, txclose, err := s.repo.Tx()
 	if err != nil {
 		return err
 	}
 	defer txclose()
-	return api.SendBatch(ctx, eventbatch)
+	return repoapi.SendBatch(ctx, eventbatch)
 
 }
-func New(ctx context.Context, config config.Config, l logger.Logger, repo unifaces.Tx[repository.RepositoryAPI]) (*service, error) {
+func New(
+	ctx context.Context,
+	config config.Config,
+	l logger.Logger,
+	repo txface.Tx[repository.RepositoryAPI],
+	broker txface.Tx[broker.BrokerAPI],
+) (*service, error) {
 
 	srvc := &service{
 		repo:   repo,

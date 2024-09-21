@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
+	"os"
 
 	"github.com/bytedance/sonic"
 	"golang.org/x/sync/errgroup"
@@ -22,11 +22,12 @@ type SingleStringLogger interface {
 	Log(msg string)
 }
 type httpapi struct {
-	topic string
-	cfg   ConfigHTTP
-
-	pool  sync.Pool
 	logch chan []byte
+	topic string
+
+	cfg ConfigHTTP
+
+	closer chan struct{}
 }
 
 /*
@@ -50,38 +51,81 @@ FORK ? -- бессмысленно, нам хватит одного треда 
 
 */
 
-func (h *httpapi) Close() error { return nil }
+func (h *httpapi) Close() error {
+	panic("unimplemented .Close httpapi")
+}
 
 // Write implements aculo.Conn.
 func (h *httpapi) Write(plainlog []byte) (n int, err error) {
 	reader := bytes.NewReader(plainlog)
-	_, err = http.Post(string(h.cfg.core.Dst), "Content-Type:text/html; charset=UTF-8", reader)
+	url := h.cfg.core.Dst + "?topic=" + h.topic
+	_, err = http.Post(url, "Content-Type:text/html; charset=UTF-8", reader)
 	return
 }
 
 const noexport_ROUTINES_HANDLERS_COUNT = 1
 
-func (h *httpapi) serve(ctx context.Context) (err error) {
-	// wg := sync.WaitGroup{}
+// Zero check variant
+// Returning channel never closed
+func FanIn[T any](in ...<-chan T) chan T {
+	ret := make(chan T, len(in))
+
+	listener := func(in <-chan T) {
+
+		var value T
+
+		for {
+			value = <-in
+			ret <- value
+		}
+	}
+	for i := range len(in) {
+		go listener(in[i])
+	}
+	return ret
+}
+
+func (h *httpapi) serve(ctx context.Context) {
+
 	errgroup := errgroup.Group{}
 	errgroup.SetLimit(noexport_ROUTINES_HANDLERS_COUNT + 1)
-	for range noexport_ROUTINES_HANDLERS_COUNT {
-		//wg.Add(1)
-		f := func() error {
-			for {
-				select {
-				case <-ctx.Done():
-				case rawlog := <-h.logch:
-					todo, todo2 := h.Write(rawlog)
-				}
 
+	done := FanIn(ctx.Done(), h.closer)
+
+	logroutine := func() error {
+
+		var (
+			err     error
+			rawlog  []byte
+			written int
+		)
+
+		for {
+			select {
+			case <-done:
+				return nil
+			case rawlog = <-h.logch:
 			}
+
+			written, err = h.Write(rawlog)
+
+			if err != nil {
+				return err
+			}
+			if written != len(rawlog) {
+				return unierrors.ErrLogWrittenPartially
+			}
+
 		}
-		errgroup.Go(f)
 	}
-	err2 := errgroup.Wait()
-	err = errors.Join(err2, err)
-	return
+	for range noexport_ROUTINES_HANDLERS_COUNT {
+
+		errgroup.Go(logroutine)
+	}
+	err := errgroup.Wait()
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+	}
 
 }
 
@@ -102,28 +146,28 @@ type OptionFunc func(cfg *ConfigHTTP) error
 // Заменить /metadata на controller.METADATA_QUERY
 const noexport_METADATA_QUERY = "/metadata"
 
-type noexport_MetadataResponse struct {
-	address string
-	topic   string
+type metadata struct {
+	Address string `json:"address"`
+	Topic   string `json:"topic"`
 }
 
-const noexport_DEFAULT_LCHANNEL_SIZE = 100
+const (
+	noexport_DEFAULT_LCHANNEL_SIZE = 100
+)
 
 func NewHTTP(ctx context.Context, controllerAddr string, options ...OptionFunc) (SingleStringLogger, error) {
 
 	// Metadata
-	if !aculo.Destination(controllerAddr).ValidHTTP() {
-		return nil, unierrors.ErrUnsuccessfulInitialisation
-	}
 	rsp, err := http.Get(controllerAddr + noexport_METADATA_QUERY)
 	if err != nil {
 
 		return nil, errors.Join(unierrors.ErrUnsuccessfulInitialisation, err)
 	}
+	defer rsp.Body.Close()
 
 	//
-	var md noexport_MetadataResponse
-	body := make([]byte, rsp.ContentLength, rsp.ContentLength)
+	var md metadata
+	body := make([]byte, rsp.ContentLength)
 	_, err = rsp.Body.Read(body)
 	if err != nil {
 		return nil, errors.Join(unierrors.ErrUnsuccessfulInitialisation, err)
@@ -140,10 +184,11 @@ func NewHTTP(ctx context.Context, controllerAddr string, options ...OptionFunc) 
 	}
 
 	api := &httpapi{
-		topic: md.topic,
-		pool:  sync.Pool{},
-		cfg:   cfg,
-		logch: make(chan []byte, noexport_DEFAULT_LCHANNEL_SIZE),
+		topic: md.Topic,
+		// pool:   sync.Pool{},
+		cfg:    cfg,
+		closer: make(chan struct{}, 1),
+		logch:  make(chan []byte, noexport_DEFAULT_LCHANNEL_SIZE),
 	}
 	go api.serve(ctx)
 	return api, nil
@@ -152,16 +197,12 @@ func NewHTTP(ctx context.Context, controllerAddr string, options ...OptionFunc) 
 // Log implements aculo.Conn.
 func (h *httpapi) Log(msg string) {
 	// TODO: make use of returned
-	_, _ = h.Write([]byte(msg))
-	return
+	h.logch <- []byte(msg)
 }
 func DefaultConfig(addr string) ConfigHTTP {
 	return ConfigHTTP{
 		core: aculo.ConfigCore{
-			Dst: aculo.Destination(addr),
+			Dst: addr,
 		},
 	}
-}
-func main() {
-
 }
