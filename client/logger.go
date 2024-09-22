@@ -29,7 +29,7 @@ type (
 		errs chan error
 	}
 
-	// Holds
+	// Holds metadata
 	Metadata struct {
 		Topic   string `json:"topic"`
 		Address string `json:"address"`
@@ -37,6 +37,7 @@ type (
 )
 
 // Get metadata from master, connect to kafka
+// Default
 func New(ctx context.Context, masterAddress string) (*Logger, error) {
 
 	var (
