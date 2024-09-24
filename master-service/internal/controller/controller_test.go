@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"master-service/internal/config"
+	"master-service/internal/logger"
 	"net/http"
 	"testing"
 
@@ -20,11 +22,12 @@ func TestInitClose(t *testing.T) {
 		egroup     errgroup.Group
 		err        error
 		controller *controller
+		config     config.Controller
 	)
 
 	ctx, cancel = context.WithCancel(context.Background())
 
-	controller, err = New(config, noplogger, service, WithContext(ctx))
+	controller, err = New(config, logger.NewNoopLogger(), any(nil), WithContext(ctx))
 
 	assert.NoError(t, err)
 

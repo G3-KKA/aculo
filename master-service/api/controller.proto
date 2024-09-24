@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+// protoc --go_out=../api/ + go_package = ./controller == ../api/controller
+
+// protoc --go_out=__PATH__ --go-grpc_out=__PATH__ ./__PROTOFILE__
+option go_package = "./controller";
+
+message RegisterRequest {
+    int64  dummy    = 1;
+}
+message RegisterResponse {
+    Metadata md     = 1; 
+}
+
+message Metadata {
+    string  topic       = 1; 
+    string  address     = 2;
+}
+
+service Registrator {
+    rpc Register (RegisterRequest) returns (RegisterResponse) {}
+}

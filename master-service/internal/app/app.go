@@ -14,6 +14,7 @@ type (
 	}
 	App struct {
 		c Controller
+		l logger.ILogger
 	}
 )
 
@@ -36,6 +37,7 @@ func New() (*App, error) {
 		cfg            config.Config
 		internalLogger logger.Logger
 	)
+	app := &App{}
 
 	cfg, err = config.ReadInConfig()
 	if err != nil {
@@ -45,10 +47,12 @@ func New() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	app.l = internalLogger
 
 	panic("")
 
 }
 func (app *App) Run() error {
+	return app.c.Serve()
 
 }

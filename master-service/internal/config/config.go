@@ -51,45 +51,62 @@ type EnvString string
 // Represents config file, must be changed manually
 // Only public fields
 type Config struct {
-	L Logger `mapstructure:"Logger"`
+	L Logger     `mapstructure:"Logger"`
+	C Controller `mapstructure:"Controller"`
 }
-type Logger struct {
-	SyncTimeout time.Duration `mapstructure:"SyncTimeout"`
-	Cores       []LoggerCore  `mapstructure:"Cores"`
-}
-type LoggerCore struct {
-	Name           string    `mapstructure:"Name"`
-	EncoderLevel   string    `mapstructure:"EncoderLevel"` // production or development
-	Path           EnvString `mapstructure:"Path"`
-	Level          int       `mapstructure:"Level"` // might be negative
-	MustCreateCore bool      `mapstructure:"MustCreateCore"`
-}
+type (
+	Logger struct {
+		SyncTimeout time.Duration `mapstructure:"SyncTimeout"`
+		Cores       []LoggerCore  `mapstructure:"Cores"`
+	}
+	LoggerCore struct {
+		Name           string    `mapstructure:"Name"`
+		EncoderLevel   string    `mapstructure:"EncoderLevel"` // production or development
+		Path           EnvString `mapstructure:"Path"`
+		Level          int       `mapstructure:"Level"` // might be negative
+		MustCreateCore bool      `mapstructure:"MustCreateCore"`
+	}
+	Controller struct {
+		GRPCServer `mapstructure:"GRPCServer"`
+		HTTPServer `mapstructure:"HTTPServer"`
+	}
+	GRPCServer struct {
+		Address string `mapstructure:"Address"`
+	}
+	HTTPServer struct {
+		Address string `mapstructure:"Address"`
+	}
+)
 
 // Environment variables validates automatically
-var environment = [...]string{
-	// Every path in service works around WORKSPACE
-	// Removing this will break every env-based path in service
-	"WORKSPACE",
-	"CONFIG_FILE",
-}
+var (
+	environment = [...]string{
+		// Every path in service works around WORKSPACE
+		// Removing this will break every env-based path in service
+		"WORKSPACE",
+		"CONFIG_FILE",
+	}
 
-// Command line arguments, use pfalg, see example
-var flags = [...]flagSetter{}
+	// Command line arguments, use pfalg, see example
+	flags = [...]flagSetter{}
 
-// Other viper options
-var elses = [...]elseSetter{}
+	// Other viper options
+	elses = [...]elseSetter{}
 
-// Uses	viper.Set
-var override = [...]overrideContainer{}
+	// Uses	viper.Set
+	override = [...]overrideContainer{}
+)
 
 // Container for config override
-type overrideContainer struct {
-	Key   string
-	Value any
-}
+type (
+	overrideContainer struct {
+		Key   string
+		Value any
+	}
 
-// Use pflag to bind
-type flagSetter func()
+	// Use pflag to bind
+	flagSetter func()
 
-// Other options
-type elseSetter func() error
+	// Other options
+	elseSetter func() error
+)
