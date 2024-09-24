@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"time"
 
 	_ "github.com/spf13/viper"
 )
@@ -39,17 +40,29 @@ func Get() (Config, error) {
 //	    - Type Zero Values
 //	    - [-1 , "NO" , "off"] or other kind of negative value
 
-// Signalises that config may contain env signature,
+// Signalises that config field may contain env signature,
 // and it must be replaced with value of the env.
 //
 // WORKSPACE = '~/user/goapp'
 //
 // ${WORKSPACE}/file/path   -->    ~/user/goapp/file/path
-type envstring string
+type EnvString string
 
 // Represents config file, must be changed manually
 // Only public fields
 type Config struct {
+	L Logger `mapstructure:"Logger"`
+}
+type Logger struct {
+	SyncTimeout time.Duration `mapstructure:"SyncTimeout"`
+	Cores       []LoggerCore  `mapstructure:"Cores"`
+}
+type LoggerCore struct {
+	Name           string    `mapstructure:"Name"`
+	EncoderLevel   string    `mapstructure:"EncoderLevel"` // production or development
+	Path           EnvString `mapstructure:"Path"`
+	Level          int       `mapstructure:"Level"` // might be negative
+	MustCreateCore bool      `mapstructure:"MustCreateCore"`
 }
 
 // Environment variables validates automatically
