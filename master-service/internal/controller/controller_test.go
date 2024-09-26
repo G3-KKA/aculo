@@ -3,17 +3,19 @@ package controller
 import (
 	"context"
 	"master-service/internal/config"
+	mock_controller "master-service/internal/controller/mocks"
 	"master-service/internal/logger"
-	"net/http"
 	"testing"
 
-	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 )
 
-func TestInitClose(t *testing.T) {
+func initialise() {
+
+}
+func TestInitShutdown(t *testing.T) {
 
 	var (
 		ctx    context.Context
@@ -24,23 +26,30 @@ func TestInitClose(t *testing.T) {
 		controller *controller
 		config     config.Controller
 	)
+	initialise := func() {
+		config.GRPCServer.Address = "localhost:22222"
+		config.HTTPServer.Address = "localhost:22223"
+		ctx, cancel = context.WithCancel(context.Background())
+		mockService := mock_controller.NewMockService(t)
+		mockService.On("Shutdown").Return(error(nil))
+		controller, err = New(config, logger.Noop(), mockService)
 
-	ctx, cancel = context.WithCancel(context.Background())
+		assert.NoError(t, err)
+		require.NotNil(t, controller)
 
-	controller, err = New(config, logger.NewNoopLogger(), any(nil), WithContext(ctx))
+		egroup.Go(func() error {
+			return controller.Serve(ctx)
+		})
+	}
+	initialise()
 
-	assert.NoError(t, err)
-
-	egroup.Go(func() error {
-		return controller.Serve(ctx)
-	})
 	cancel()
 	egroup.Wait()
 
 }
 
 // todo
-func TestRegister(t *testing.T) {
+/* func TestRegister(t *testing.T) {
 
 	const query = "http://localhost:7730/register"
 	var (
@@ -54,7 +63,7 @@ func TestRegister(t *testing.T) {
 			Topic   string `json:"topic"`
 		}
 	)
-	rsp, err = http.Get(query)
+	rsp, err = http.Post(query, "application/json", &bytes.Buffer{})
 	assert.NoError(t, err)
 
 	body = make([]byte, rsp.ContentLength)
@@ -64,9 +73,10 @@ func TestRegister(t *testing.T) {
 	err = sonic.Unmarshal(body, &md)
 	assert.NoError(t, err)
 
-}
+} */
 
 // todo
+/*
 func TestRegisterGRPC(t *testing.T) {
 	var (
 		md struct {
@@ -77,3 +87,4 @@ func TestRegisterGRPC(t *testing.T) {
 	// Или как там это делается
 	grpc.Get()
 }
+*/

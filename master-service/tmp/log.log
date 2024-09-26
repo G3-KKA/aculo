@@ -1,0 +1,29 @@
+{"level":"debug","ts":1727284342.472077,"msg":"Logger construction succeeded"}
+
+{"level":"debug","ts":1727284471.4646304,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727284594.7897308,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727284738.3858292,"msg":"Logger construction succeeded"}
+{"level":"error","ts":1727284738.3859851,"msg":"grpc and http server's addresses are the same"}
+{"level":"debug","ts":1727285828.1721575,"msg":"Logger construction succeeded"}
+{"level":"error","ts":1727285828.1722658,"msg":"grpc and http server's addresses are the same\ngrpc and http server's addresses are the same\n same as "}
+{"level":"debug","ts":1727285935.6975942,"msg":"Logger construction succeeded"}
+{"level":"error","ts":1727285935.697681,"msg":"grpc and http server's addresses are the same\n same as "}
+{"level":"debug","ts":1727286147.2880998,"msg":"Logger construction succeeded"}
+{"level":"error","ts":1727286147.2882113,"msg":"grpc and http server's addresses are the same\n||\tsame as\t||"}
+{"level":"debug","ts":1727286184.7310097,"msg":"Logger construction succeeded"}
+{"level":"error","ts":1727286184.7313952,"msg":"grpc and http server's addresses are the same\n||   same as   ||"}
+{"level":"debug","ts":1727286604.4794872,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727286604.4798656,"msg":"controller construction succeded"}
+{"level":"debug","ts":1727286604.479907,"msg":"app construction succeded"}
+{"level":"debug","ts":1727286694.2129743,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727286694.2134693,"msg":"controller construction succeded"}
+{"level":"debug","ts":1727286694.213495,"msg":"app construction succeded"}
+{"level":"debug","ts":1727287330.6472955,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727287330.6489477,"msg":"[GIN-debug] POST   /register                 --> master-service/internal/controller/httpctl.(*httpKafkaHandler).Register-fm (1 handlers)\n"}
+{"level":"debug","ts":1727287330.649002,"msg":"controller construction succeded"}
+{"level":"debug","ts":1727287330.6490135,"msg":"app construction succeded"}
+{"level":"debug","ts":1727288616.6502087,"msg":"Logger construction succeeded"}
+{"level":"debug","ts":1727288616.6503081,"msg":"[GIN-debug] POST   /register                 --> master-service/internal/controller/httpctl.(*httpKafkaHandler).Register-fm (1 handlers)\n"}
+{"level":"debug","ts":1727288616.650328,"msg":"controller construction succeded"}
+{"level":"debug","ts":1727288616.6503348,"msg":"app construction succeded"}
+{"level":"debug","ts":1727288618.166989,"msg":"http: Server closed"}

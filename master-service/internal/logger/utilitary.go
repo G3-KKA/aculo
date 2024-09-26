@@ -2,7 +2,6 @@ package logger
 
 import (
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"sync/atomic"
@@ -18,14 +17,8 @@ var (
 	ErrUnknownEncoder        = errors.New("unknown encoder")
 )
 
-//go:generate mockery --filename=mock_write_syncer.go --name=WriteSyncer --dir=. --structname MockWriteSyncer  --inpackage=true
-type WriteSyncer interface {
-	io.Writer
-	Sync() error
-}
-
 // TODO: There might be problems with /stderr and debugging go code via dlv
-func assembleDestination(path string) (WriteSyncer, error) {
+func assembleDestination(path string) (zapcore.WriteSyncer, error) {
 
 	// Trying to create log file
 	logfile, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
@@ -61,10 +54,10 @@ func setEncoder(name string) (zapcore.Encoder, error) {
 }
 
 // Calls .Sync() for  every syncTimeout
-func syncOnTimout(logger Logger, syncTimeout time.Duration) (stop StopFunc) {
+func syncOnTimout(logger Logger, syncTimeout time.Duration) (stop stopFunc) {
 	go func() {
-		var ticker *StopableTicker
-		ticker, stop = NewStopableTicker(syncTimeout)
+		var ticker *stopableTicker
+		ticker, stop = newStopableTicker(syncTimeout)
 
 		C := ticker.Chan()
 		for {
@@ -79,29 +72,29 @@ func syncOnTimout(logger Logger, syncTimeout time.Duration) (stop StopFunc) {
 }
 
 // Ticker with no false-ticks
-type StopableTicker struct {
+type stopableTicker struct {
 	c      chan time.Time
 	closed atomic.Bool
 }
 
-type StopFunc func()
+type stopFunc func()
 
 // Incapsulates channel, provided channel is read-only and cannot be closed by hand
 // It WILL be closed inside ticker logic, after calling StopFunc
-func (ticker *StopableTicker) Chan() <-chan time.Time {
+func (ticker *stopableTicker) Chan() <-chan time.Time {
 	return ticker.c
 }
 
 // Returns state of the ticker
-func (ticker *StopableTicker) Closed() bool {
+func (ticker *stopableTicker) Closed() bool {
 	return ticker.closed.Load()
 }
 
 // Uses time.Ticker inside, adds stopper functionality
 // StopFunc closes the channel and stores true in closed flag
 // False ticks may occur!
-func NewStopableTicker(d time.Duration) (*StopableTicker, StopFunc) {
-	stopable := &StopableTicker{
+func newStopableTicker(d time.Duration) (*stopableTicker, stopFunc) {
+	stopable := &stopableTicker{
 		c:      make(chan time.Time),
 		closed: atomic.Bool{},
 	}

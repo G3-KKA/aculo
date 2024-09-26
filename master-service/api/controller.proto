@@ -3,7 +3,7 @@ syntax = "proto3";
 // protoc --go_out=../api/ + go_package = ./controller == ../api/controller
 
 // protoc --go_out=__PATH__ --go-grpc_out=__PATH__ ./__PROTOFILE__
-option go_package = "./controller";
+option go_package = "./grpcctl";
 
 message RegisterRequest {
     int64  dummy    = 1;

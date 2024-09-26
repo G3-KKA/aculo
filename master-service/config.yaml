@@ -11,6 +11,11 @@ Logger:
         Path: "${WORKSPACE}/tmp/log.log"
         Level : -1 # debug
         MustCreateCore: true
+Controller:
+  GRPCServer:
+    Address: "localhost:7731"
+  HTTPServer:
+    Address: "localhost:7730"
 #Broker:
 #    Addresses:
 #      - localhost:9092

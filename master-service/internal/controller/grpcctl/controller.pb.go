@@ -4,7 +4,7 @@
 // 	protoc        v5.28.1
 // source: api/controller.proto
 
-package controller
+package grpcctl
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"

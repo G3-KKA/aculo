@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"master-service/internal/config"
 	"slices"
 
@@ -8,14 +9,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-//go:generate mockery --filename=mock_logger.go --name=Logger --dir=. --structname MockLogger  --inpackage=true
+var _ io.Writer = &Logger{}
+
 type (
-	ILogger interface {
-		Debug(args ...any)
-		Info(args ...any)
-		Error(args ...any)
-		Fatal(args ...any)
-	}
+	// Logger as object, no need for interfaces
 	Logger struct {
 		*zap.SugaredLogger
 		levels []NamedLevel
@@ -71,6 +68,21 @@ func New(config config.Logger) (Logger, error) {
 	_ = syncOnTimout(logger, config.SyncTimeout)
 
 	return logger, nil
+}
+
+// Writes to debug!
+func (l *Logger) Write(in []byte) (n int, err error) {
+	// l.Debug(string(in[:len(in)]))
+	l.Debug(string(in[:]))
+	return len(in), nil
+}
+
+// Return noop logger
+func Noop() Logger {
+	return Logger{
+		SugaredLogger: zap.NewNop().Sugar(),
+		levels:        []NamedLevel{},
+	}
 }
 
 // ===================================================================================================================

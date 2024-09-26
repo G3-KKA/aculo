@@ -1,22 +1,24 @@
 package app
 
 import (
+	"context"
 	"master-service/internal/config"
+	"master-service/internal/controller"
+	mock_controller "master-service/internal/controller/mocks"
 	"master-service/internal/logger"
 	"os"
+	"testing"
 )
 
-type (
-	//go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname MockController  --inpackage=true
-	Controller interface {
-		Serve() error
-		Close() error
-	}
-	App struct {
-		c Controller
-		l logger.ILogger
-	}
-)
+//go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname=MockController --outpkg=mock_app
+type Controller interface {
+	Serve(ctx context.Context) error
+	Shutdown(ctx context.Context) error
+}
+type App struct {
+	ctl Controller
+	l   logger.Logger
+}
 
 // New.Run() wrapper
 func Run() {
@@ -48,11 +50,21 @@ func New() (*App, error) {
 		return nil, err
 	}
 	app.l = internalLogger
+	ctl, err := controller.New(cfg.C, internalLogger, mock_controller.NewMockService(&testing.T{}))
+	if err != nil {
+		internalLogger.Error(err.Error())
+		return nil, err
+	}
+	app.ctl = ctl
 
-	panic("")
+	internalLogger.Debug("app construction succeded")
+	return app, nil
 
 }
 func (app *App) Run() error {
-	return app.c.Serve()
-
+	err := app.ctl.Serve(context.TODO())
+	if err != nil {
+		app.l.Debug(err.Error())
+	}
+	return err
 }

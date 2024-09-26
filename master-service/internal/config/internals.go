@@ -128,9 +128,6 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 			if t != reflect.TypeOf(EnvString("")) {
 				return data, nil
 			}
-			if f != reflect.TypeOf(EnvString("")) {
-				return data, nil
-			}
 			var (
 				dataString string
 				ret        string
