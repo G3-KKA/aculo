@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -9,59 +8,78 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"master-service/internal/errspec"
 )
 
-// Phase of config initialisation
-type initPhase func() error
-
+// Global config, do not try to access it.
 var c Config
+
+type (
+	// Phase of config initialisation.
+	initPhase func() error
+
+	// Container for config override.
+	overrideContainer struct {
+		Key   string
+		Value any
+	}
+
+	// Use pflag to bind.
+	flagSetter func()
+
+	// Other options.
+	elseSetter func() error
+)
 
 func execute(pipeline []initPhase) error {
 	for _, phase := range pipeline {
 		err := phase()
 		if err != nil {
-			return fmt.Errorf("cannot init config %e", err)
+			return err
 		}
 	}
+
 	return nil
 }
 
-// Adds validation to env binding
+// Adds validation to env binding.
 func registerENV(input ...string) (err error) {
 	err = viper.BindEnv(input...)
 	if err != nil {
 		return err
 	}
 	for _, env := range input {
-		// Type-free validation
-		// Not defined integer or bool should be "" as well
+		// Type-free validation.
+		// Not defined integer or bool should be "" as well.
 		envalue := viper.GetString(env)
 		if envalue == "" {
-			return fmt.Errorf("%s is not defined", env)
+			return errspec.MsgValue(ErrEnvNotDefined, "not defined", env)
 		}
 	}
+
 	return nil
 }
 
-// Wraps viper.BindPFlags()
+// Wraps viper.BindPFlags().
 func bindFlags() error {
 	pflag.Parse()
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
-		return fmt.Errorf("cannot bind flags: %v", err)
+		return err
 	}
+
 	return nil
 }
 func fillGlobalConfig() error {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return fmt.Errorf("cannot read config file: %v", err)
+		return err
 	}
 
-	// Will be called one after another
-	// Do not try to put them separately
-	// ComposeDecode in crucial
+	// Will be called one after another.
+
+	// Do not try to put them separately, ComposeDecode() is crucial.
 	hooks := []mapstructure.DecodeHookFunc{
 		envReplaceHook(),
 		mapstructure.StringToTimeDurationHookFunc(),
@@ -69,51 +87,53 @@ func fillGlobalConfig() error {
 	composeHook := mapstructure.ComposeDecodeHookFunc(hooks...)
 	err = viper.Unmarshal(&c, viper.DecodeHook(composeHook))
 	if err != nil {
-		return fmt.Errorf("cannot unmarshal config file contents: %v", err)
+		return err
 	}
+
 	return nil
 }
 
-// Parse config file path for  ext
-// TODO filepath.EXT()
+// Parse config file path for ext.
+//
+// # TODO filepath.EXT().
 func extFromPath(path string) string {
 	dotIndex := strings.LastIndexByte(path, '.')
 	if dotIndex == -1 {
 		return ""
 	}
+
 	return path[dotIndex+1:]
 }
 
-// Parse config file path for name
+// Parse config file path for name.
 func nameFromPath(path string) string {
 	dotIndex := strings.LastIndexByte(path, '.')
 	if dotIndex == -1 {
 		return ""
 	}
 	slashIndex := strings.LastIndexByte(path[:dotIndex], '/')
+
 	return path[slashIndex+1 : dotIndex]
 }
 
-// Sets config file name and extention
-// Change only if something breaks
+// Sets config file name and extension.
 func handleConfigFile() error {
 	configFileEnv := viper.GetString("CONFIG_FILE")
 
-	// Getting parts of path
 	name := nameFromPath(configFileEnv)
 	ext := extFromPath(configFileEnv)
 
 	dir := filepath.Dir(configFileEnv)
 
-	// Setting Config
 	viper.AddConfigPath(dir)
 	viper.SetConfigName(name)
 	viper.SetConfigType(ext)
+
 	return nil
 }
 
 // Parse ${ENV}/dir/file kind of path,
-// Only works if variable type is path, see ./config.go
+// Only works if variable type is path, see ./config.go.
 func envReplaceHook() mapstructure.DecodeHookFuncType {
 	hook := mapstructure.DecodeHookFuncType(
 		func(
@@ -121,7 +141,7 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 			t reflect.Type,
 			data any,
 		) (any, error) {
-			// Skip other types of data
+			// Skip other types of data.
 			if f.Kind() != reflect.String {
 				return data, nil
 			}
@@ -139,7 +159,7 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 
 			dataString, _ = data.(string)
 
-			// Search for '$' in string
+			// Search for '${...}' in string.
 			dollar = strings.IndexByte(dataString, '$')
 			openBracket = strings.IndexByte(dataString, '{')
 			closeBracket = strings.IndexByte(dataString, '}')
@@ -151,23 +171,19 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 			if check == -1 || check != dollar {
 				return data, nil
 			}
-			if closeBracket < openBracket { // }${
+			if closeBracket < openBracket { // ...}${... check.
 				return data, nil
 			}
 
 			beforeEnv := dataString[:dollar]
-			// somevalue${ENV}
-			/* 			if len(dataString) <= closeBracket+1 {
-				// overflow check
-				return data, nil
-			} */
-			afterEnv := dataString[closeBracket+1:] // Dangerous
+			afterEnv := dataString[closeBracket+1:]
 
 			env := dataString[openBracket+1 : closeBracket]
 			ret = beforeEnv + viper.GetString(env) + afterEnv
 
 			return ret, nil
 		})
+
 	return hook
 
 }

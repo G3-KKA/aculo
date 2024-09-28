@@ -1,25 +1,27 @@
 package config
 
 import (
-	"reflect"
 	"time"
-
-	_ "github.com/spf13/viper"
 )
 
-func ReadInConfig() (Config, error) {
-	err := initConfig()
-	if err != nil {
-		return Config{}, err
+// Environment variables validated automatically.
+var (
+	environment = [...]string{
+		// Every path in service works around WORKSPACE,
+		// Removing this will break every env-based path in service.
+		"WORKSPACE",
+		"CONFIG_FILE",
 	}
-	return c, nil
-}
-func Get() (Config, error) {
-	if reflect.DeepEqual(c, Config{}) {
-		return Config{}, ErrZeroValueConfig
-	}
-	return c, nil
-}
+
+	// Command line arguments, use pfalg, see example.
+	flags = [...]flagSetter{}
+
+	// Other viper options.
+	elses = [...]elseSetter{}
+
+	// Uses	viper.Set.
+	override = [...]overrideContainer{}
+)
 
 // Configuration Constraints
 //
@@ -40,16 +42,16 @@ func Get() (Config, error) {
 //	    - Type Zero Values
 //	    - [-1 , "NO" , "off"] or other kind of negative value
 
-// Signalises that config field may contain env signature,
+// Signalizes that config field may contain env signature,
 // and it must be replaced with value of the env.
-//
-// WORKSPACE = '~/user/goapp'
-//
-// ${WORKSPACE}/file/path   -->    ~/user/goapp/file/path
 type EnvString string
 
-// Represents config file, must be changed manually
-// Only public fields
+// Example:
+// WORKSPACE = '~/user/goapp'
+//
+// ${WORKSPACE}/file/path   -->    ~/user/goapp/file/path.
+
+// Represents expected contents of configuration file.
 type Config struct {
 	L Logger     `mapstructure:"Logger"`
 	C Controller `mapstructure:"Controller"`
@@ -61,9 +63,9 @@ type (
 	}
 	LoggerCore struct {
 		Name           string    `mapstructure:"Name"`
-		EncoderLevel   string    `mapstructure:"EncoderLevel"` // production or development
+		EncoderLevel   string    `mapstructure:"EncoderLevel"` // production or development.
 		Path           EnvString `mapstructure:"Path"`
-		Level          int       `mapstructure:"Level"` // might be negative
+		Level          int8      `mapstructure:"Level"` // might be negative.
 		MustCreateCore bool      `mapstructure:"MustCreateCore"`
 	}
 	Controller struct {
@@ -76,37 +78,4 @@ type (
 	HTTPServer struct {
 		Address string `mapstructure:"Address"`
 	}
-)
-
-// Environment variables validates automatically
-var (
-	environment = [...]string{
-		// Every path in service works around WORKSPACE
-		// Removing this will break every env-based path in service
-		"WORKSPACE",
-		"CONFIG_FILE",
-	}
-
-	// Command line arguments, use pfalg, see example
-	flags = [...]flagSetter{}
-
-	// Other viper options
-	elses = [...]elseSetter{}
-
-	// Uses	viper.Set
-	override = [...]overrideContainer{}
-)
-
-// Container for config override
-type (
-	overrideContainer struct {
-		Key   string
-		Value any
-	}
-
-	// Use pflag to bind
-	flagSetter func()
-
-	// Other options
-	elseSetter func() error
 )

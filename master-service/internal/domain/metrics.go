@@ -5,5 +5,5 @@ import "github.com/google/uuid"
 type StreamMetrics struct {
 }
 
-// Stream Accumulator IDentifier
+// Stream Accumulator Identifier.
 type SAID uuid.UUID

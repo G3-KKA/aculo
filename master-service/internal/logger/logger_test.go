@@ -1,12 +1,12 @@
 package logger
 
 import (
-	"master-service/internal/config"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"master-service/internal/config"
 )
 
 func TestLogger(t *testing.T) {
@@ -36,6 +36,7 @@ func TestLogger(t *testing.T) {
 			},
 		},
 	})
+	assert.NoError(t, err)
 	logger.Debug(testDebugMessage)
 	bytes, err := os.ReadFile(os.TempDir() + "/" + temp.Name())
 	assert.NoError(t, err)

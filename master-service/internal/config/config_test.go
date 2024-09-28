@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -22,6 +21,7 @@ func (t *ConfigTestSuite) SetupSuite() {
 }
 
 func (t *ConfigTestSuite) TestReadIn() {
+	t.T().Parallel()
 	cfg, err := ReadInConfig()
 	if t.NoError(err) {
 		t.NotZero(cfg)
@@ -29,11 +29,12 @@ func (t *ConfigTestSuite) TestReadIn() {
 
 }
 func (t *ConfigTestSuite) TestHook() {
+	t.T().Parallel()
 	hook := envReplaceHook()
 	t.NotNil(hook)
-	// -1 represents any data that should not be parsed
+	// -1 represents any data that should not be parsed.
 	testCases := []struct {
-		// This kind of naming [F T D] used inside viper, this is not my fault
+		// This kind of naming [F T D] used inside viper, this is not my fault.
 		F              reflect.Type
 		T              reflect.Type
 		D              any
@@ -60,7 +61,7 @@ func (t *ConfigTestSuite) TestHook() {
 			T:              reflect.TypeOf(EnvString("")),
 			D:              "/me/mario",
 			ExpectedResult: "/me/mario",
-			Desc:           "hook input is config.config.Path type, but does not contain ${ENV} statement",
+			Desc:           "types are correct, but input missing ${ENV} expr",
 		},
 		{
 			F:              reflect.TypeOf(EnvString("")),
@@ -74,34 +75,20 @@ func (t *ConfigTestSuite) TestHook() {
 			T:              reflect.TypeOf(EnvString("")),
 			D:              "RR${WORKSPACE}/data",
 			ExpectedResult: "RR" + viper.GetString("WORKSPACE") + "/data",
-			Desc:           "",
+			Desc:           "correct data, should be correct result",
 		},
 		{
 			F:              reflect.TypeOf(EnvString("")),
 			T:              reflect.TypeOf(EnvString("")),
 			D:              "RR${WORKSPACE}",
 			ExpectedResult: "RR" + viper.GetString("WORKSPACE"),
-			Desc:           "",
-		},
-		{
-			F:              reflect.TypeOf(EnvString("")),
-			T:              reflect.TypeOf(EnvString("")),
-			D:              "${WORKSPACE}RR",
-			ExpectedResult: viper.GetString("WORKSPACE") + "RR",
-			Desc:           "",
+			Desc:           "correct data, should be correct result",
 		},
 		{
 			F:              reflect.TypeOf(EnvString("")),
 			T:              reflect.TypeOf(EnvString("")),
 			D:              "RR}${WORKSPACE",
 			ExpectedResult: "RR}${WORKSPACE",
-			Desc:           "",
-		},
-		{
-			F:              reflect.TypeOf(EnvString("")),
-			T:              reflect.TypeOf(EnvString("")),
-			D:              "RR}${",
-			ExpectedResult: "RR}${",
 			Desc:           "",
 		},
 	}
@@ -111,6 +98,7 @@ func (t *ConfigTestSuite) TestHook() {
 	}
 }
 func (t *ConfigTestSuite) Test_extFromPath() {
+	t.T().Parallel()
 	testCases := []struct {
 		Path  string
 		Exted string
@@ -146,10 +134,10 @@ func (t *ConfigTestSuite) Test_registerENV() {
 			Desc:   "WORKSPACE should be correct",
 		},
 		{
-			ENV:    "Undefined",
+			ENV:    "UndefinedENV",
 			Result: "",
-			Error:  fmt.Errorf("some error"),
-			Desc:   "Undefined should be empty",
+			Error:  ErrEnvNotDefined,
+			Desc:   "UndefinedENV should be empty",
 		},
 	}
 

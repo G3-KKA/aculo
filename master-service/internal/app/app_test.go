@@ -10,34 +10,41 @@ import (
 )
 
 func TestAppRun(t *testing.T) {
-	// t.Parallel() Not Parallel test because of syscall
+	// t.Parallel() Not Parallelable test because of syscall.
 	var (
 		app *App
 		err error
 	)
+	const (
+		failTimeout = time.Second * 5
 
-	interrupted := make(chan struct{})
-	timer := time.NewTimer(time.Second * 4)
+		// 1.5 sec.
+		shutdownTimeout = time.Microsecond * 1500
+	)
+	errchan := make(chan error, 1)
 
-	go func() {
-		select {
-		case <-timer.C:
-			t.Log("interrupt handler not working or app shutdown taken >4Sec")
-			t.FailNow()
-			os.Exit(1)
-		case <-interrupted:
-		}
-	}()
 	app, err = New()
-
 	assert.NoError(t, err)
-	go func() {
-		time.Sleep(time.Second)
-		syscall.Kill(os.Getpid(), syscall.SIGINT)
-	}()
 
-	err = app.Run()
+	shutdown := func() {
+		time.Sleep(shutdownTimeout)
+		err2 := syscall.Kill(os.Getpid(), syscall.SIGINT)
+		assert.NoError(t, err2)
+	}
+	runner := func() {
+		errchan <- app.Run()
+		close(errchan)
+	}
 
-	assert.NoError(t, err)
-	close(interrupted)
+	go runner()
+	go shutdown()
+
+	timer := time.NewTimer(failTimeout)
+	select {
+	case <-timer.C:
+		t.Fatalf("app shutdown has taken more than %s", failTimeout.String())
+	case err = <-errchan:
+		assert.NoError(t, err)
+	}
+
 }

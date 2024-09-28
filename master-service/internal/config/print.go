@@ -2,25 +2,28 @@ package config
 
 import (
 	"bytes"
-	"fmt"
+	"io"
 
 	"gopkg.in/yaml.v3"
 )
 
-func Print(cfg Config) {
-	ybytes, err := yaml.Marshal(cfg)
-	if err == nil {
-		bbuf := bytes.Buffer{}
-		bbuf.WriteString("[INFO] Config: \n\t")
-		for _, v := range ybytes {
-			if v == '\n' {
-				bbuf.WriteByte('\n')
-				bbuf.WriteByte('\t')
-				continue
-			}
-			bbuf.WriteByte(v)
-
-		}
-		fmt.Println(bbuf.String())
+// Print self. Unsafe function, use only on the startup.
+func (c Config) Print(to io.Writer) {
+	ybytes, err := yaml.Marshal(c)
+	if err != nil {
+		return
 	}
+	buf := bytes.Buffer{}
+
+	_, _ = buf.WriteString("[INFO] Config: \n\t")
+	for _, b := range ybytes {
+		if b == '\n' {
+			_, _ = buf.Write([]byte{'\n', '\t'})
+
+			continue
+		}
+		_ = buf.WriteByte(b)
+
+	}
+	_, _ = to.Write(buf.Bytes())
 }

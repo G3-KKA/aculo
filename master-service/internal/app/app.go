@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
-	"master-service/internal/config"
-	"master-service/internal/controller"
-	mock_controller "master-service/internal/controller/mocks"
-	"master-service/internal/logger"
 	"os"
 	"testing"
+
+	"master-service/internal/config"
+	"master-service/internal/controller"
+	"master-service/internal/logger"
+
+	mock_controller "master-service/internal/controller/mocks"
 )
 
 //go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname=MockController --outpkg=mock_app
@@ -15,12 +17,14 @@ type Controller interface {
 	Serve(ctx context.Context) error
 	Shutdown(ctx context.Context) error
 }
+
+// Application itself.
 type App struct {
 	ctl Controller
 	l   logger.Logger
 }
 
-// New.Run() wrapper
+// Run is an app.New.Run() wrapper.
 func Run() {
 	app, err := New()
 	if err != nil {
@@ -33,13 +37,20 @@ func Run() {
 		os.Exit(1)
 	}
 }
+
+// # [App] constructor.
+//
+// Stages:
+//
+//   - Read config,
+//   - Initialize internal logger,
+//   - Get [Controller].
 func New() (*App, error) {
 	var (
 		err            error
 		cfg            config.Config
 		internalLogger logger.Logger
 	)
-	app := &App{}
 
 	cfg, err = config.ReadInConfig()
 	if err != nil {
@@ -49,22 +60,32 @@ func New() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	app.l = internalLogger
+
+	cfg.Print(&internalLogger)
 	ctl, err := controller.New(cfg.C, internalLogger, mock_controller.NewMockService(&testing.T{}))
 	if err != nil {
 		internalLogger.Error(err.Error())
+
 		return nil, err
 	}
-	app.ctl = ctl
+	app := &App{
+		ctl: ctl,
+		l:   internalLogger,
+	}
+	internalLogger.Debug("app construction succeeded")
 
-	internalLogger.Debug("app construction succeded")
 	return app, nil
 
 }
+
+// Run calls Serve on underlying [Controller].
+//
+// Warning! Blocks execution indefinitely!
 func (app *App) Run() error {
 	err := app.ctl.Serve(context.TODO())
 	if err != nil {
 		app.l.Debug(err.Error())
 	}
+
 	return err
 }

@@ -2,19 +2,17 @@ package controller
 
 import (
 	"context"
-	"master-service/internal/config"
-	mock_controller "master-service/internal/controller/mocks"
-	"master-service/internal/logger"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	"master-service/internal/config"
+	"master-service/internal/logger"
+
+	mock_controller "master-service/internal/controller/mocks"
 )
 
-func initialise() {
-
-}
 func TestInitShutdown(t *testing.T) {
 
 	var (
@@ -24,15 +22,15 @@ func TestInitShutdown(t *testing.T) {
 		egroup     errgroup.Group
 		err        error
 		controller *controller
-		config     config.Controller
+		cfg        config.Controller
 	)
-	initialise := func() {
-		config.GRPCServer.Address = "localhost:22222"
-		config.HTTPServer.Address = "localhost:22223"
+	initialize := func() {
+		cfg.GRPCServer.Address = "localhost:22222"
+		cfg.HTTPServer.Address = "localhost:22223"
 		ctx, cancel = context.WithCancel(context.Background())
 		mockService := mock_controller.NewMockService(t)
 		mockService.On("Shutdown").Return(error(nil))
-		controller, err = New(config, logger.Noop(), mockService)
+		controller, err = New(cfg, logger.Noop(), mockService)
 
 		assert.NoError(t, err)
 		require.NotNil(t, controller)
@@ -41,15 +39,16 @@ func TestInitShutdown(t *testing.T) {
 			return controller.Serve(ctx)
 		})
 	}
-	initialise()
+	initialize()
 
 	cancel()
-	egroup.Wait()
+	err = egroup.Wait()
+	assert.NoError(t, err)
 
 }
 
-// todo
-/* func TestRegister(t *testing.T) {
+/* TODO:
+ func TestRegister(t *testing.T) {
 
 	const query = "http://localhost:7730/register"
 	var (
@@ -75,8 +74,7 @@ func TestInitShutdown(t *testing.T) {
 
 } */
 
-// todo
-/*
+/* TODO:
 func TestRegisterGRPC(t *testing.T) {
 	var (
 		md struct {

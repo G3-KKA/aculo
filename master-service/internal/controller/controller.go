@@ -3,18 +3,23 @@ package controller
 import (
 	"context"
 	"errors"
-	"master-service/internal/config"
-	"master-service/internal/controller/grpcctl"
-	"master-service/internal/controller/httpctl"
-	"master-service/internal/errspec"
-	"master-service/internal/logger"
-	"master-service/internal/req"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
 	"golang.org/x/sync/errgroup"
+	"master-service/internal/config"
+	"master-service/internal/controller/grpcctl"
+	"master-service/internal/controller/httpctl"
+	"master-service/internal/errspec"
+	"master-service/internal/logger"
+	"master-service/internal/req"
+)
+
+var (
+	// controller will shutdown on any of this signals.
+	SHUTDOWN_SIGNALS = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
 )
 
 type controller struct {
@@ -36,18 +41,18 @@ type Service interface {
 
 //go:generate mockery --filename=mock_kafka_cluster.go --name=KafkaClusterService --dir=. --structname=MockKafkaClusterService --outpkg=mock_controller
 type KafkaClusterService interface {
-	CreateTopic(ctx context.Context, req req.CreateTopicRequest) (req.CreateTopicResponse, error)
+	CreateTopic(ctx context.Context, r req.CreateTopicRequest) (req.CreateTopicResponse, error)
 }
 
 //go:generate mockery --filename=mock_stream_cluster_service.go --name=StreamClusterService --dir=. --structname=MockStreamClusterService --outpkg=mock_controller
 type StreamClusterService interface {
-	//  Deprecated: request response semantic will be better
-	//	Metrics(ctx context.Context) (*domain.StreamMetrics, error)
-	//	HandleTopic(ctx context.Context, said domain.SAID, topic string) error
+	//  Deprecated: request response semantic will be better.
+	//	Metrics(ctx context.Context) (*domain.StreamMetrics, error);
+	//	HandleTopic(ctx context.Context, said domain.SAID, topic string) error;
 
-	Metrics(ctx context.Context, req req.MetricsRequest) (req.MetricsResponse, error)
+	Metrics(ctx context.Context, r req.MetricsRequest) (req.MetricsResponse, error)
 
-	HandleTopic(ctx context.Context, req req.MetricsRequest) (req.HandleTopicResponse, error)
+	HandleTopic(ctx context.Context, r req.MetricsRequest) (req.HandleTopicResponse, error)
 }
 
 // Creates controller, validates config, not starting to serve.
@@ -73,16 +78,14 @@ func New(cfg config.Controller, l logger.Logger, srvc Service) (ctl *controller,
 		l:            l,
 		shutdownOnce: sync.Once{},
 	}
-	l.Debug("controller construction succeded")
-	return ctrl, nil
+	l.Debug("controller construction succeeded")
 
+	return ctrl, nil
 }
 
-// controller will shutdown on one of this signals
-var SHUTDOWN_SIGNALS = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
-
-// Starts grpc and http controller
-// Shutdown via ctx.Done or on [SHUTDOWN_SIGNALS]
+// # Serve starts grpc and http controller.
+//
+// Shutdown via ctx.Done or on any of [SHUTDOWN_SIGNALS].
 func (ctl *controller) Serve(ctx context.Context) error {
 
 	var (
@@ -100,6 +103,7 @@ func (ctl *controller) Serve(ctx context.Context) error {
 		case <-sigchan:
 		case <-ctx.Done():
 		}
+
 		return ctl.Shutdown(ctx)
 
 	}
@@ -110,24 +114,28 @@ func (ctl *controller) Serve(ctx context.Context) error {
 		return ctl.httpC.Serve(ctx)
 	})
 	egroup.Go(shutdowner)
+
 	return egroup.Wait()
 
 }
 
-// None can be shutted down twice
-// Safe to call it it multiple places
+// Shutdown is graceful and cooperative.
+//
+// Blocking function.
+//
+// Safe to call it multiple places.
 func (ctl *controller) Shutdown(ctx context.Context) (err error) {
 	ctl.shutdownOnce.Do(func() {
 
+		const allroutines = 3
+		errs := make(chan error, allroutines)
 		wg := sync.WaitGroup{}
 
-		errs := make(chan error, 3)
-
-		// Кооперативное выключение
-		// Обязательно ждём чтобы все закончили работу
-		// Можем встать на дедлоке здесь если одна из функций дурит внутри
-		// .Shutdown() контроллеров
-		// time.Timer() может быть необходим с чем-то наподобие 30 сек
+		// Кооперативное выключение!
+		// Обязательно ждём чтобы все закончили работу.
+		// Можем встать на дедлоке здесь,
+		//	 если одна из функций дурит внутри .Shutdown() контроллеров.
+		// time.Timer() может быть необходим с чем-то наподобие 30 сек.
 
 		grpcShutdowner := func() {
 			defer wg.Done()
@@ -143,8 +151,9 @@ func (ctl *controller) Shutdown(ctx context.Context) (err error) {
 			errs <- ctl.srvc.Shutdown()
 		}
 
-		wg.Add(2)
+		wg.Add(1)
 		go grpcShutdowner()
+		wg.Add(1)
 		go httpShutdowner()
 
 		go errscloser()
@@ -152,15 +161,20 @@ func (ctl *controller) Shutdown(ctx context.Context) (err error) {
 			err = errors.Join(e, err)
 		}
 	})
-	return
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func valid(cfg config.Controller) (err error) {
-
 	if cfg.GRPCServer.Address == cfg.HTTPServer.Address {
 		err = errspec.Same(ErrConfigSameAddresses,
 			cfg.GRPCServer.Address,
 			cfg.HTTPServer.Address)
 	}
+
 	return
 }
