@@ -47,7 +47,6 @@ func newStopableTicker(d time.Duration) (*stopableTicker, stopFunc) {
 				return
 			}
 			stopable.c <- val
-
 		}
 	}()
 	stop := func() {

@@ -1,6 +1,4 @@
 package req
 
-type HandleTopicRequest struct {
-}
-type HandleTopicResponse struct {
-}
+type HandleTopicRequest struct{}
+type HandleTopicResponse struct{}

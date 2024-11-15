@@ -3,31 +3,29 @@ package controller
 import (
 	"context"
 	"errors"
+	"master-service/config"
+	"master-service/internal/controller/grpcctl"
+	"master-service/internal/controller/httpctl"
+	"master-service/internal/errspec"
+	"master-service/internal/logger"
+	"master-service/internal/req"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
 	"golang.org/x/sync/errgroup"
-	"master-service/internal/config"
-	"master-service/internal/controller/grpcctl"
-	"master-service/internal/controller/httpctl"
-	"master-service/internal/errspec"
-	"master-service/internal/logger"
-	"master-service/internal/req"
 )
 
-var (
-	// controller will shutdown on any of this signals.
-	SHUTDOWN_SIGNALS = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
-)
+// controller will shutdown on any of this signals.
+var SHUTDOWN_SIGNALS = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
 
 type controller struct {
 	grpcC *grpcctl.GRPCController
 	httpC *httpctl.HTTPController
-	cfg   config.Controller
-	l     logger.Logger
 	srvc  Service
+
+	l logger.Logger
 
 	shutdownOnce sync.Once
 }
@@ -61,6 +59,7 @@ func New(cfg config.Controller, l logger.Logger, srvc Service) (ctl *controller,
 	if err != nil {
 		return nil, err
 	}
+
 	grpcC, err := grpcctl.NewGRPCController(cfg.GRPCServer, l, srvc)
 	if err != nil {
 		return nil, err
@@ -74,7 +73,6 @@ func New(cfg config.Controller, l logger.Logger, srvc Service) (ctl *controller,
 		grpcC:        grpcC,
 		httpC:        httpC,
 		srvc:         srvc,
-		cfg:          cfg,
 		l:            l,
 		shutdownOnce: sync.Once{},
 	}
@@ -87,15 +85,9 @@ func New(cfg config.Controller, l logger.Logger, srvc Service) (ctl *controller,
 //
 // Shutdown via ctx.Done or on any of [SHUTDOWN_SIGNALS].
 func (ctl *controller) Serve(ctx context.Context) error {
-
 	var (
 		egroup errgroup.Group
-		err    error
 	)
-	err = valid(ctl.cfg)
-	if err != nil {
-		return err
-	}
 	shutdowner := func() (err error) {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, SHUTDOWN_SIGNALS...)
@@ -105,7 +97,6 @@ func (ctl *controller) Serve(ctx context.Context) error {
 		}
 
 		return ctl.Shutdown(ctx)
-
 	}
 	egroup.Go(func() error {
 		return ctl.grpcC.Serve(ctx)
@@ -116,7 +107,6 @@ func (ctl *controller) Serve(ctx context.Context) error {
 	egroup.Go(shutdowner)
 
 	return egroup.Wait()
-
 }
 
 // Shutdown is graceful and cooperative.
@@ -126,7 +116,6 @@ func (ctl *controller) Serve(ctx context.Context) error {
 // Safe to call it multiple places.
 func (ctl *controller) Shutdown(ctx context.Context) (err error) {
 	ctl.shutdownOnce.Do(func() {
-
 		const allroutines = 3
 		errs := make(chan error, allroutines)
 		wg := sync.WaitGroup{}
@@ -149,7 +138,7 @@ func (ctl *controller) Shutdown(ctx context.Context) (err error) {
 			defer close(errs)
 			wg.Wait()
 			errs <- ctl.srvc.Shutdown()
-		}
+		} Вот это должно быть в App.Shutdown(), убрать ! 
 
 		wg.Add(1)
 		go grpcShutdowner()

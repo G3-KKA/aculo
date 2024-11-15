@@ -2,14 +2,12 @@ package app
 
 import (
 	"context"
+	"master-service/config"
+	"master-service/internal/controller"
+	mock_controller "master-service/internal/controller/mocks"
+	"master-service/internal/logger"
 	"os"
 	"testing"
-
-	"master-service/internal/config"
-	"master-service/internal/controller"
-	"master-service/internal/logger"
-
-	mock_controller "master-service/internal/controller/mocks"
 )
 
 //go:generate mockery --filename=mock_controller.go --name=Controller --dir=. --structname=MockController --outpkg=mock_app
@@ -52,7 +50,7 @@ func New() (*App, error) {
 		internalLogger logger.Logger
 	)
 
-	cfg, err = config.ReadInConfig()
+	cfg, err = config.Get()
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +73,13 @@ func New() (*App, error) {
 	internalLogger.Debug("app construction succeeded")
 
 	return app, nil
-
 }
 
 // Run calls Serve on underlying [Controller].
 //
 // Warning! Blocks execution indefinitely!
 func (app *App) Run() error {
+	panic("Выключение программы должно быть не внутри ctl.Serve, а в самом App.Run, graceful shutdown контроллера должен нам гарантировать что все запросы обработаны и тогда даже не нужен транзакционный механизм, по определению больше никто не постучится ни в одну подсистему ")
 	err := app.ctl.Serve(context.TODO())
 	if err != nil {
 		app.l.Debug(err.Error())

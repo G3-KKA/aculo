@@ -1,0 +1,1306 @@
+# This file contains all available configuration options
+# with their default values (in comments).
+#
+# This file is not a configuration example,
+# it contains the exhaustive configuration with explanations of the options.
+
+# Options for analysis running.
+####     '####' comment means self written, other -- not
+####     could be used as __TAG
+run:
+  #### Interesting:
+
+  # Timeout for analysis, e.g. 30s, 5m.
+  # Default: 1m
+  #### timeout: 5m
+
+  build-tags: []
+output:
+  # Formats:
+  # - `colored-line-number`
+  # - `line-number`
+  # - `json`
+  # - `colored-tab`
+  # - `tab`
+  # - `html`
+  # - `checkstyle`
+  # - `code-climate`
+  # - `junit-xml`
+  # - `junit-xml-extended`
+  # - `github-actions`
+  # - `teamcity`
+  # - `sarif`
+  # Output path can be either `stdout`, `stderr` or path to the file to write to.
+  #
+  # For the CLI flag (`--out-format`), multiple formats can be specified by separating them by comma.
+  # The output can be specified for each of them by separating format name and path by colon symbol.
+  # Example: "--out-format=checkstyle:report.xml,json:stdout,colored-line-number"
+  # The CLI flag (`--out-format`) override the configuration file.
+  #
+  # Default:
+  #   formats:
+  #     - format: colored-line-number
+  #       path: stdout
+  formats: #### May be multiple! 
+    - format: colored-line-number
+      path: stdout
+    - format: html
+      path: .linterresult.html
+  # Order to use when sorting results.
+  # Require `sort-results` to `true`.
+  # Possible values: `file`, `linter`, and `severity`.
+  #
+  # If the severity values are inside the following list, they are ordered in this order:
+  #   1. error
+  #   2. warning
+  #   3. high
+  #   4. medium
+  #   5. low
+  # Either they are sorted alphabetically.
+  #
+  # Default: ["file"]
+  sort-results: true 
+  sort-order:
+    - file # filepath, line, and column.
+  ####  - linter
+  ####  - severity
+  
+# =========================== STOP ==================================
+linters-settings:
+  #### PART0
+  gofmt:
+    # Simplify code: gofmt with `-s` option.
+    # Default: true
+    simplify: true 
+  govet: 
+   enable-all: true 
+   disable:
+    - fieldalignment
+  errcheck:
+    # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+    # Such cases aren't reported by default.
+    # Default: false
+    check-type-assertions: true
+  gosimple:
+    # Sxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: [ "all" ] #### untested
+  staticcheck:
+    # SAxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: [ "all" ] #### untested
+  unused:
+    # Mark all struct fields that have been written to as used.
+    # Default: true
+    field-writes-are-uses: true
+    # Treat IncDec statement (e.g. `i++` or `i--`) as both read and write operation instead of just write.
+    # Default: false
+    #### post-statements-are-reads: true
+    # Mark all exported fields as used.
+    # default: true
+    exported-fields-are-used: true
+    # Mark all function parameters as used.
+    # default: true
+    parameters-are-used: true
+    # Mark all local variables as used.
+    # default: true
+    local-variables-are-used: true
+    # Mark all identifiers inside generated files as used.
+    # Default: true
+    generated-is-used: true
+
+  #### PART1
+  copyloopvar:
+    # Check all assigning the loop variable to another variable.
+    # Default: false
+    check-alias: false
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 10
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    package-average: 0.0
+    # Should ignore tests.
+    # Default: false
+    skip-tests: false
+  decorder:
+    # Required order of `type`, `const`, `var` and `func` declarations inside a file.
+    # Default: types before constants before variables before functions.
+    dec-order:
+      - var
+      - const
+      - type
+      - func
+
+    # If true, underscore vars (vars with "_" as the name) will be ignored at all checks
+    # Default: false (underscore vars are not ignored)
+    ignore-underscore-vars: false
+
+    # If true, order of declarations is not checked at all.
+    # Default: true (disabled)
+    disable-dec-order-check: false
+
+    # If true, `init` func can be anywhere in file (does not have to be declared before all other functions).
+    # Default: true (disabled)
+    disable-init-func-first-check: false
+
+    # If true, multiple global `type`, `const` and `var` declarations are allowed.
+    # Default: true (disabled)
+    disable-dec-num-check: true
+
+    # If true, type declarations will be ignored for dec num check
+    # Default: false (type statements are not ignored)
+    disable-type-dec-num-check: false
+
+    # If true, const declarations will be ignored for dec num check
+    # Default: false (const statements are not ignored)
+    disable-const-dec-num-check: false
+
+    # If true, var declarations will be ignored for dec num check
+    # Default: false (var statements are not ignored)
+    disable-var-dec-num-check: false
+  dupword:
+    # Keywords for detecting duplicate words.
+    # If this list is not empty, only the words defined in this list will be detected.
+    # Default: []
+    keywords: []
+    # Keywords used to ignore detection.
+    # Default: []
+    ignore: []
+  errchkjson:
+    # With check-error-free-encoding set to true, errchkjson does warn about errors
+    # from json encoding functions that are safe to be ignored,
+    # because they are not possible to happen.
+    #
+    # if check-error-free-encoding is set to true and errcheck linter is enabled,
+    # it is recommended to add the following exceptions to prevent from false positives:
+    #
+    #     linters-settings:
+    #       errcheck:
+    #         exclude-functions:
+    #           - encoding/json.Marshal
+    #           - encoding/json.MarshalIndent
+    #
+    # Default: false
+    check-error-free-encoding: false
+
+    # Issue on struct encoding that doesn't have exported fields.
+    # Default: false
+    report-no-exported: false  
+  errorlint:
+    # Check whether fmt.Errorf uses the %w verb for formatting errors.
+    # See the https://github.com/polyfloyd/go-errorlint for caveats.
+    # Default: true
+    errorf: true
+    # Permit more than 1 %w verb, valid per Go 1.20 (Requires errorf:true)
+    # Default: true
+    errorf-multi: true
+    # Check for plain type assertions and type switches.
+    # Default: true
+    asserts: true
+    # Check for plain error comparisons.
+    # Default: true
+    comparison: true
+    # Allowed errors.
+    # Default: []
+    allowed-errors: []
+    # Allowed error "wildcards".
+    # Default: []
+    allowed-errors-wildcard: []
+  exhaustive:
+    # Program elements to check for exhaustiveness.
+    # Default: [ switch ]
+    check:
+      - switch
+      - map
+    # Check switch statements in generated files also.
+    # Default: false
+    check-generated: false
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: false #### Не уверен в этом 
+    # Enum members matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-members: ""
+    # Enum types matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-types: ""
+    # Consider enums only in package scopes, not in inner scopes.
+    # Default: false
+    package-scope-only: false
+    # Only run exhaustive check on switches with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-switch: false
+    # Only run exhaustive check on map literals with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-map: false
+    # Switch statement requires default case even if exhaustive.
+    # Default: false
+    default-case-required: true
+  exhaustruct:
+    # List of regular expressions to match struct packages and their names.
+    # Regular expressions must match complete canonical struct package/name/structname.
+    # If this list is empty, all structs are tested.
+    # Default: []
+    include: []
+    # List of regular expressions to exclude struct packages and their names from checks.
+    # Regular expressions must match complete canonical struct package/name/structname.
+    # Default: []
+    exclude: []
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 70
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 50
+    # Ignore comments when counting lines.
+    # Default false
+    ignore-comments: true
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # The default order of sections is `standard > default > custom > blank > dot > alias > localmodule`,
+    # If `custom-order` is `true`, it follows the order of `sections` option.
+    # Default: ["standard", "default"]
+    sections:
+      - standard                       # Standard section: captures all standard packages.
+      - default                        # Default section: contains all imports that could not be matched to another section type.
+    #  - prefix(github.com/org/project) # Custom section: groups all imports with the specified Prefix.
+    #  - blank                          # Blank section: contains all blank imports. This section is not present unless explicitly enabled.
+    #  - dot                            # Dot section: contains all dot imports. This section is not present unless explicitly enabled.
+      - alias                          # Alias section: contains all alias imports. This section is not present unless explicitly enabled.
+    #  - localmodule                    # Local module section: contains all local packages. This section is not present unless explicitly enabled.
+
+    # Skip generated files.
+    # Default: true
+    # skip-generated: true
+
+    # Enable custom order of sections.
+    # If `true`, make the section order the same as the order of `sections`.
+    # Default: false
+    # custom-order: true
+
+    # Drops lexical ordering for custom sections.
+    # Default: false
+    #### might be too tough no-lex-order: true
+  gocritic:
+    # Which checks should be enabled in addition to default checks; can't be combined with 'disabled-checks'.
+    # By default, list of stable checks is used (https://go-critic.github.io/overview#checks-overview):
+    #   appendAssign, argOrder, assignOp, badCall, badCond, captLocal, caseOrder, codegenComment, commentFormatting,
+    #   defaultCaseOrder, deprecatedComment, dupArg, dupBranchBody, dupCase, dupSubExpr, elseif, exitAfterDefer,
+    #   flagDeref, flagName, ifElseChain, mapKey, newDeref, offBy1, regexpMust, singleCaseSwitch, sloppyLen,
+    #   sloppyTypeAssert, switchTrue, typeSwitchVar, underef, unlambda, unslice, valSwap, wrapperFunc
+    # To see which checks are enabled run `GL_DEBUG=gocritic golangci-lint run --enable=gocritic`.
+    enabled-checks: []
+    #  - nestingReduce
+    #  - unnamedResult
+    #  - ruleguard
+    #  - truncateCmp
+    # Which checks should be disabled; can't be combined with 'enabled-checks'.
+    # Default: []
+    disabled-checks: []
+    #### Если включить все чеки через enabled-tags
+    #### То можно вырубить те единицы что мне не нравятся вот тут (работает, проверено)
+    # - regexpMust
+
+    # Enable multiple checks by tags in addition to default checks.
+    # Run `GL_DEBUG=gocritic golangci-lint run --enable=gocritic` to see all tags and checks.
+    # See https://github.com/go-critic/go-critic#usage -> section "Tags".
+    # Default: []
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+    #  - opinionated
+    #disabled-tags:
+    #  - diagnostic
+    #  - style
+    #  - performance
+    #  - experimental
+    #  - opinionated
+
+    # Settings passed to gocritic.
+    # The settings key is the name of a supported gocritic checker.
+    # The list of supported checkers can be find in https://go-critic.github.io/overview.
+  gocyclo:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 20
+  godot:
+    # Comments to be checked: `declarations`, `toplevel`, or `all`.
+    # Default: declarations
+    scope: "all"
+    # List of regexps for excluding particular comment lines from check.
+    # Default: []
+    exclude: []
+    # Check that each sentence ends with a period.
+    # Default: true
+    period: true
+    # Check that each sentence starts with a capital letter.
+    # Default: false
+    capital: false
+  godox:
+    # Report any comments starting with keywords, this is useful for TODO or FIXME comments that
+    # might be left in the code accidentally and should be resolved before merging.
+    # Default: ["TODO", "BUG", "FIXME"]
+    keywords:
+      - TODO
+      - __TAG 
+      - FIX
+      - FIXME
+      - BUG 
+  gosec:
+    # To select a subset of rules to run.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    # Default: [] - means include all rules
+    includes: []
+
+    # To specify a set of rules to explicitly exclude.
+    # Available rules: https://github.com/securego/gosec#available-rules
+    # Default: []
+    excludes: []
+
+    # Exclude generated files
+    # Default: false
+    exclude-generated: true
+
+    # Filter out the issues with a lower severity than the given value.
+    # Valid options are: low, medium, high.
+    # Default: low
+    severity: low
+
+    # Filter out the issues with a lower confidence than the given value.
+    # Valid options are: low, medium, high.
+    # Default: low
+    confidence: low
+
+    # To specify the configuration of rules.
+    config:
+      G101:
+        # Regexp pattern for variables and constants to find.
+        # Default: "(?i)passwd|pass|password|pwd|secret|token|pw|apiKey|bearer|cred"
+        pattern: "(?i)passwd|pass|password|pwd|secret|token|pw|apiKey|bearer|cred"
+        # If true, complain about all cases (even with low entropy).
+        # Default: false
+        ignore_entropy: false
+        # Maximum allowed entropy of the string.
+        # Default: "80.0"
+        entropy_threshold: "80.0"
+        # Maximum allowed value of entropy/string length.
+        # Is taken into account if entropy >= entropy_threshold/2.
+        # Default: "3.0"
+        per_char_threshold: "3.0"
+        # Calculate entropy for first N chars of the string.
+        # Default: "16"
+        truncate: "16"
+      # Additional functions to ignore while checking unhandled errors.
+      # Following functions always ignored:
+      #   bytes.Buffer:
+      #     - Write
+      #     - WriteByte
+      #     - WriteRune
+      #     - WriteString
+      #   fmt:
+      #     - Print
+      #     - Printf
+      #     - Println
+      #     - Fprint
+      #     - Fprintf
+      #     - Fprintln
+      #   strings.Builder:
+      #     - Write
+      #     - WriteByte
+      #     - WriteRune
+      #     - WriteString
+      #   io.PipeWriter:
+      #     - CloseWithError
+      #   hash.Hash:
+      #     - Write
+      #   os:
+      #     - Unsetenv
+      # Default: {}
+      G104:
+        fmt:
+          - Fscanf
+  inamedparam:
+    # Skips check for interface methods with only a single parameter.
+    # Default: false
+    skip-single-param: false
+  interfacebloat:
+    # The maximum number of methods allowed for an interface.
+    # Default: 10
+    max: 5 #### Не понятно, работает ли вложенность интерфейсов тут, если да то буду вынужден выключить
+  ireturn:
+    # List of interfaces to allow.
+    # Lists of the keywords and regular expressions matched to interface or package names can be used.
+    # `allow` and `reject` settings cannot be used at the same time.
+    #
+    # Keywords:
+    # - `empty` for `interface{}`
+    # - `error` for errors
+    # - `stdlib` for standard library
+    # - `anon` for anonymous interfaces
+    # - `generic` for generic interfaces added in go 1.18
+    #
+    # Default: [anon, error, empty, stdlib]
+    allow:
+      - anon
+      - error
+      - empty
+      - stdlib
+
+    # List of interfaces to reject.
+    # Lists of the keywords and regular expressions matched to interface or package names can be used.
+    # `allow` and `reject` settings cannot be used at the same time.
+    #
+    # Keywords:
+    # - `empty` for `interface{}`
+    # - `error` for errors
+    # - `stdlib` for standard library
+    # - `anon` for anonymous interfaces
+    # - `generic` for generic interfaces added in go 1.18
+    #
+    # Default: []
+    reject: []
+  lll:
+    # Max line length, lines longer will be reported.
+    # '\t' is counted as 1 character by default, and can be changed with the tab-width option.
+    # Default: 120.
+    line-length: 110
+    # Tab width in spaces.
+    # Default: 1
+    tab-width: 1
+  maintidx:
+    # Show functions with maintainability index lower than N.
+    # A high index indicates better maintainability (it's kind of the opposite of complexity).
+    # Default: 20
+    under: 30
+  misspell:
+    # Correct spellings using locale preferences for US or UK.
+    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
+    # Default is to use a neutral variety of English.
+    locale: US
+    # Typos to ignore.
+    # Should be in lower case.
+    # Default: []
+    ignore-words: []
+    # Extra word corrections.
+    # `typo` and `correction` should only contain letters.
+    # The words are case-insensitive.
+    # Default: []
+    extra-words: []
+    # Mode of the analysis:
+    # - default: checks all the file content.
+    # - restricted: checks only comments.
+    # Default: ""
+    mode: "" #### Возможно нужно будет поставить рестриктед
+  mnd:
+    # List of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
+    # Default: ["argument", "case", "condition", "operation", "return", "assign"]
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    # List of numbers to exclude from analysis.
+    # The numbers should be written as string.
+    # Values always ignored: "1", "1.0", "0" and "0.0"
+    # Default: []
+    ignored-numbers: []
+    # List of file patterns to exclude from analysis.
+    # Values always ignored: `.+_test.go`
+    # Default: []
+    ignored-files: []
+    # List of function patterns to exclude from analysis.
+    # Following functions are always ignored: `time.Date`,
+    # `strconv.FormatInt`, `strconv.FormatUint`, `strconv.FormatFloat`,
+    # `strconv.ParseInt`, `strconv.ParseUint`, `strconv.ParseFloat`.
+    # Default: []
+    ignored-functions:
+      - '^math\.'
+      - '^http\.StatusText$'
+      - '^os\.'
+  nakedret:
+    # Make an issue if func has more lines of code than this setting, and it has naked returns.
+    # Default: 30
+    max-func-lines: 30
+  nilnil:
+    # List of return types to check.
+    # Default: ["ptr", "func", "iface", "map", "chan", "uintptr", "unsafeptr"]
+    checked-types:
+      - ptr
+      - func
+      - iface
+      - map
+      - chan
+      - uintptr
+      - unsafeptr
+  nlreturn:
+    # Size of the block (including return statement that is still "OK")
+    # so no return split required.
+    # Default: 1
+    block-size: 1
+  paralleltest: #### Не будет вообще работать с интеграционными тестами
+    # Ignore missing calls to `t.Parallel()` and only report incorrect uses of it.
+    # Default: false
+    ignore-missing: true
+    # Ignore missing calls to `t.Parallel()` in subtests. Top-level tests are
+    # still required to have `t.Parallel`, but subtests are allowed to skip it.
+    # Default: false
+    ignore-missing-subtests: true
+  prealloc:
+    # IMPORTANT: we don't recommend using this linter before doing performance profiling.
+    # For most programs usage of prealloc will be a premature optimization.
+
+    # Report pre-allocation suggestions only on simple loops that have no returns/breaks/continues/gotos in them.
+    # Default: true
+    simple: true
+    # Report pre-allocation suggestions on range loops.
+    # Default: true
+    range-loops: true
+    # Report pre-allocation suggestions on for loops.
+    # Default: false
+    for-loops: true
+  predeclared:
+    # Comma-separated list of predeclared identifiers to not report on.
+    # Default: ""
+    ignore: ""
+    # Include method names and field names (i.e., qualified names) in checks.
+    # Default: false
+    q: false
+  protogetter:
+    # Skip files generated by specified generators from the checking.
+    # Checks only the file's initial comment, which must follow the format: "// Code generated by <generator-name>".
+    # Files generated by protoc-gen-go, protoc-gen-go-grpc, and protoc-gen-grpc-gateway are always excluded automatically.
+    # Default: []
+    skip-generated-by: []
+    # Skip files matching the specified glob pattern from the checking.
+    # Default: []
+    skip-files: []
+    # Skip any generated files from the checking.
+    # Default: false
+    skip-any-generated: false
+    # Skip first argument of append function.
+    # Default: false
+    replace-first-arg-in-append: false
+  revive:
+    # Maximum number of open files at the same time.
+    # See https://github.com/mgechev/revive#command-line-flags
+    # Defaults to unlimited.
+    max-open-files: 2048
+
+    # When set to false, ignores files with "GENERATED" header, similar to golint.
+    # See https://github.com/mgechev/revive#available-rules for details.
+    # Default: false
+    ignore-generated-header: true
+
+    # Sets the default severity.
+    # See https://github.com/mgechev/revive#configuration
+    # Default: warning
+    severity: error
+
+    # Enable all available rules.
+    # Default: false
+    enable-all-rules: false
+
+    # Sets the default failure confidence.
+    # This means that linting errors with less than 0.8 confidence will be ignored.
+    # Default: 0.8
+    confidence: 0.5
+
+    rules:
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#add-constant
+      - name: add-constant
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - maxLitCount: "3"
+            allowStrs: '"","WORKSPACE"'
+            allowInts: "0,1"
+            allowFloats: "0.0,1.0"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#argument-limit
+      - name: argument-limit
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: [ 4 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#atomic
+      - name: atomic
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#banned-characters
+      - name: banned-characters
+        severity: warning
+        disabled: true
+        exclude: []
+        arguments: []
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bare-return
+      - name: bare-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#blank-imports
+      - name: blank-imports
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#bool-literal-in-expr
+      - name: bool-literal-in-expr
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#call-to-gc
+      - name: call-to-gc
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cognitive-complexity
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#comments-density
+      - name: comments-density
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ 15 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
+      - name: confusing-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-results
+      - name: confusing-results
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#constant-logical-expr
+      - name: constant-logical-expr
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-as-argument
+      - name: context-as-argument
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - allowTypesBefore: "*testing.T,*github.com/user/repo/testing.Harness"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-keys-type
+      - name: context-keys-type
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cyclomatic
+      - name: cyclomatic
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ 3 ]
+
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#deep-exit
+      - name: deep-exit
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#defer
+      - name: defer
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: []
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#dot-imports
+      - name: dot-imports
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#duplicated-imports
+      - name: duplicated-imports
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#early-return
+      - name: early-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: []
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-block
+      - name: empty-block
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-lines
+      - name: empty-lines
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-map-style
+      - name: enforce-map-style
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "make"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-repeated-arg-type-style
+      - name: enforce-repeated-arg-type-style
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "short"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#enforce-slice-style
+      - name: enforce-slice-style
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "make"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-naming
+      - name: error-naming
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-return
+      - name: error-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#error-strings
+      - name: error-strings
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#errorf
+      - name: errorf
+        severity: warning
+        disabled: true
+        exclude: [""]
+            # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#exported
+      - name: exported
+        severity: error
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#file-header
+      - name: file-header
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - This is the text that must appear at the top of source files.
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
+      - name: flag-parameter
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-length
+      - name: function-length
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ 10, 0 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-result-limit
+      - name: function-result-limit
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ 3 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#get-return
+      - name: get-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#identical-branches
+      - name: identical-branches
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#if-return
+      - name: if-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-alias-naming
+      - name: import-alias-naming
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "^[a-z][a-z0-9]{0,}$"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#import-shadowing
+      - name: import-shadowing
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#imports-blocklist
+      - name: imports-blocklist
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "crypto/md5"
+          - "crypto/sha1"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#increment-decrement
+      - name: increment-decrement
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#indent-error-flow
+      - name: indent-error-flow
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#line-length-limit
+      - name: line-length-limit
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [ 80 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-control-nesting
+      - name: max-control-nesting
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: [ 4 ]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-parameter
+      - name: modifies-parameter
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#modifies-value-receiver
+      - name: modifies-value-receiver
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#nested-structs
+      - name: nested-structs
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#optimize-operands-order
+      - name: optimize-operands-order
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#package-comments
+      - name: package-comments
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range
+      - name: range
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range-val-address
+      - name: range-val-address
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range-val-in-closure
+      - name: range-val-in-closure
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#receiver-naming
+      - name: receiver-naming
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redefines-builtin-id
+      - name: redefines-builtin-id
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redundant-import-alias
+      - name: redundant-import-alias
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-format
+      - name: string-format
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - - 'core.WriteError[1].Message'
+            - '/^([^A-Z]|$)/'
+            - must not start with a capital letter
+          - - 'fmt.Errorf[0]'
+            - '/(^|[^\.!?])$/'
+            - must not end in punctuation
+          - - panic
+            - '/^[^\n]*$/'
+            - must not contain line breaks
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-of-int
+      - name: string-of-int
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#struct-tag
+      - name: struct-tag
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "json,inline"
+          - "bson,outline,gnu"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#superfluous-else
+      - name: superfluous-else
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments:
+          - "preserveScope"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-equal
+      - name: time-equal
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#time-naming
+      - name: time-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unchecked-type-assertion
+      - name: unchecked-type-assertion
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - acceptIgnoredAssertionResult: true
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unconditional-recursion
+      - name: unconditional-recursion
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-naming
+      - name: unexported-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unexported-return
+      - name: unexported-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unhandled-error
+      - name: unhandled-error
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - "fmt.Printf"
+          - "myFunction"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unnecessary-stmt
+      - name: unnecessary-stmt
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unreachable-code
+      - name: unreachable-code
+        severity: warning
+        disabled: true
+        exclude: [""]
+
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#unused-receiver
+      - name: unused-receiver
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - allowRegex: "^_"
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#use-any
+      - name: use-any
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#useless-break
+      - name: useless-break
+        severity: warning
+        disabled: false
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-declaration
+      - name: var-declaration
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#var-naming
+      - name: var-naming
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - [ "ID" ] # AllowList
+          - [ "VM" ] # DenyList
+          - - upperCaseConst: true # Extra parameter (upperCaseConst|skipPackageNameChecks)
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#waitgroup-by-value
+      - name: waitgroup-by-value
+        severity: warning
+        disabled: true
+        exclude: [""]
+  tagalign:
+    # Align and sort can be used together or separately.
+    #
+    # Whether enable align. If true, the struct tags will be aligned.
+    # e.g.:
+    # type FooBar struct {
+    #     Bar    string `json:"bar" validate:"required"`
+    #     FooFoo int8   `json:"foo_foo" validate:"required"`
+    # }
+    # will be formatted to:
+    # type FooBar struct {
+    #     Bar    string `json:"bar"     validate:"required"`
+    #     FooFoo int8   `json:"foo_foo" validate:"required"`
+    # }
+    # Default: true.
+    align: true
+    # Whether enable tags sort.
+    # If true, the tags will be sorted by name in ascending order.
+    # e.g.: `xml:"bar" json:"bar" validate:"required"` -> `json:"bar" validate:"required" xml:"bar"`
+    # Default: true
+    sort: false
+    # Specify the order of tags, the other tags will be sorted by name.
+    # This option will be ignored if `sort` is false.
+    # Default: []
+    order: []
+    # Whether enable strict style.
+    # In this style, the tags will be sorted and aligned in the dictionary order,
+    # and the tags with the same name will be aligned together.
+    # Note: This option will be ignored if 'align' or 'sort' is false.
+    # Default: false
+    strict: false
+  testifylint:
+    # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    enable-all: true
+    # Disable checkers by name
+    # (in addition to default
+    #   suite-thelper
+    # ).
+    disable: 
+    #  - blank-import
+    #  - bool-compare
+    #  - compares
+    #  - empty
+    #  - error-is-as
+    #  - error-nil
+    #  - expected-actual
+    #  - float-compare
+    #  - formatter
+    #  - go-require
+    #  - len
+    #  - negative-positive
+    #  - nil-compare
+    - require-error
+    #  - suite-broken-parallel
+    #  - suite-dont-use-pkg
+    #  - suite-extra-assert-call
+    #  - suite-subtest-run
+    #  - suite-thelper
+    #  - useless-assert
+
+    # Disable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    disable-all: false
+    # Enable checkers by name
+    # (in addition to default
+    #   blank-import, bool-compare, compares, empty, error-is-as, error-nil, expected-actual, go-require, float-compare,
+    #   formatter, len, negative-positive, nil-compare, require-error, suite-broken-parallel, suite-dont-use-pkg,
+    #   suite-extra-assert-call, suite-subtest-run, useless-assert
+    # ).
+    enable: []
+    #  - blank-import
+    #  - bool-compare
+    #  - compares
+    #  - empty
+    #  - error-is-as
+    #  - error-nil
+    #  - expected-actual
+    #  - float-compare
+    #  - formatter
+    #  - go-require
+    #  - len
+    #  - negative-positive
+    #  - nil-compare
+    #  - require-error
+    #  - suite-broken-parallel
+    #  - suite-dont-use-pkg
+    #  - suite-extra-assert-call
+    #  - suite-subtest-run
+    #  - suite-thelper
+    #  - useless-assert
+
+    bool-compare:
+      # To ignore user defined types (over builtin bool).
+      # Default: false
+      ignore-custom-types: false
+    expected-actual:
+      # Regexp for expected variable name.
+      # Default: (^(exp(ected)?|want(ed)?)([A-Z]\w*)?$)|(^(\w*[a-z])?(Exp(ected)?|Want(ed)?)$)
+      pattern: ""
+    formatter:
+      # To enable go vet's printf checks.
+      # Default: true
+      check-format-string: true
+      # To require f-assertions if format string is used.
+      # Default: false
+      require-f-funcs: false
+    go-require:
+      # To ignore HTTP handlers (like http.HandlerFunc).
+      # Default: false
+      ignore-http-handlers: false
+#    require-error: #### ДОЛЖНО БЫТЬ НЕ DEFINED 
+#      # Regexp for assertions to analyze. If defined, then only matched error assertions will be reported.
+#      # Default: ""
+#      fn-pattern: ""
+    suite-extra-assert-call:
+      # To require or remove extra Assert() call?
+      # Default: remove
+      mode: remove #### Непонятно чё хотят 
+  usestdlibvars:
+    # Suggest the use of http.MethodXX.
+    # Default: true
+    http-method: true
+    # Suggest the use of http.StatusXX.
+    # Default: true
+    http-status-code: true
+    # Suggest the use of time.Weekday.String().
+    # Default: true
+    time-weekday: true
+    # Suggest the use of time.Month.String().
+    # Default: false
+    time-month: true
+    # Suggest the use of time.Layout.
+    # Default: false
+    time-layout: true
+    # Suggest the use of crypto.Hash.String().
+    # Default: false
+    crypto-hash: true
+    # Suggest the use of rpc.DefaultXXPath.
+    # Default: false
+    default-rpc-path: true
+    # Suggest the use of sql.LevelXX.String().
+    # Default: false
+    sql-isolation-level: true
+    # Suggest the use of tls.SignatureScheme.String().
+    # Default: false
+    tls-signature-scheme: true
+    # Suggest the use of constant.Kind.String().
+    # Default: false
+    constant-kind: true
+
+linters:
+  enable:
+    #### PART0 #### enabled by default
+    - gofmt
+    - govet
+    - errcheck
+    - gosimple 
+    - ineffassign #### NOCONFIG 
+    - typecheck #### NOCONFIG #### Странный линтер, не совсем понятно что делает 
+    - staticcheck
+    - unused 
+    #### PART1
+    - bodyclose #### NOCONFIG
+    - canonicalheader #### NOCONFIG
+    - copyloopvar
+    - cyclop
+    - decorder 
+    - dupword
+    - durationcheck
+    - err113 #### errors.Is() везде 
+    - errchkjson
+    - errorlint 
+    - exhaustive
+    - exhaustruct
+    - funlen
+    # NEXT ! 
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gosec
+    - inamedparam
+    - interfacebloat
+    - ireturn 
+    - lll
+    - maintidx
+    - mirror
+    - misspell
+    - mnd
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnil
+    - nlreturn
+    - paralleltest #### Не будет вообще работать с интеграционными тестами
+    - perfsprint
+    - prealloc
+    - predeclared
+    - protogetter
+    - revive
+    - sqlclosecheck
+    - tagalign
+    - testifylint
+    - usestdlibvars
+  fast: false 
+
+  disable:  #### TODO: изучить все disabled и вернуть в бой
+    - gci #### might beincompatable with gofmt 
+issues: #### NEXT !!!! 
+  exclude-rules:
+    - path: errspec\.go
+      linters:
+        - err113
+    - path: print\.go
+      linters:
+        - musttag
+      # Exclude `lll` issues for long lines with `go:generate`.
+    - linters:
+        - lll
+      source: "^//go:generate "
+    
+#  exclude-dirs:
+#    - '*mock*'
+  exclude-dirs-use-default: true 
+  exclude-generated: lax
+    # Maximum issues count per one linter.
+  # Set to 0 to disable.
+  # Default: 50
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 0
+
+  # Show only new issues: if there are unstaged changes or untracked files,
+  # only those changes are analyzed, else only changes in HEAD~ are analyzed.
+  # It's a super-useful option for integration of golangci-lint into existing large codebase.
+  # It's not practical to fix all existing issues at the moment of integration:
+  # much better don't allow issues in new code.
+  #
+  # Default: false
+  new: false
+  
+
+severity:
+  default-severity: ""

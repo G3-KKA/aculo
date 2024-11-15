@@ -16,13 +16,13 @@ func Test(t *testing.T) {
 	suite.Run(t, new(ConfigTestSuite))
 }
 func (t *ConfigTestSuite) SetupSuite() {
-	viper.Set("WORKSPACE", "../..")
+	viper.Set("WORKSPACE", "..")
 	viper.Set("CONFIG_FILE", viper.GetString("WORKSPACE")+"/config.yaml")
 }
 
 func (t *ConfigTestSuite) TestReadIn() {
 	t.T().Parallel()
-	cfg, err := ReadInConfig()
+	cfg, err := Get()
 	if t.NoError(err) {
 		t.NotZero(cfg)
 	}
@@ -96,62 +96,4 @@ func (t *ConfigTestSuite) TestHook() {
 		result, _ := hook(testcase.F, testcase.T, testcase.D)
 		t.Equal(testcase.ExpectedResult, result, testcase.Desc)
 	}
-}
-func (t *ConfigTestSuite) Test_extFromPath() {
-	t.T().Parallel()
-	testCases := []struct {
-		Path  string
-		Exted string
-	}{
-		{
-			Path:  "some/config.yaml",
-			Exted: "yaml",
-		},
-
-		{
-			Path:  "config.json",
-			Exted: "json",
-		},
-	}
-	for _, testcase := range testCases {
-		ext := extFromPath(testcase.Path)
-		t.Equal(testcase.Exted, ext)
-	}
-}
-
-func (t *ConfigTestSuite) Test_registerENV() {
-	testCases := []struct {
-		ENV    string
-		Result string
-		Error  error
-
-		Desc string
-	}{
-		{
-			ENV:    "WORKSPACE",
-			Result: viper.GetString("WORKSPACE"),
-			Error:  nil,
-			Desc:   "WORKSPACE should be correct",
-		},
-		{
-			ENV:    "UndefinedENV",
-			Result: "",
-			Error:  ErrEnvNotDefined,
-			Desc:   "UndefinedENV should be empty",
-		},
-	}
-
-	for _, testcase := range testCases {
-		err := registerENV(testcase.ENV)
-		if t.Equal(testcase.Result, viper.GetString(testcase.ENV), testcase.Desc) {
-			continue
-		}
-		t.ErrorIs(err, testcase.Error, testcase.Desc)
-	}
-
-}
-
-func (t *ConfigTestSuite) Test_InitConfig() {
-	err := initConfig()
-	t.NoError(err, "should be ok")
 }

@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"master-service/config"
+
 	"github.com/stretchr/testify/assert"
-	"master-service/internal/config"
 )
 
 func TestLogger(t *testing.T) {
@@ -23,6 +24,7 @@ func TestLogger(t *testing.T) {
 	temp, err = os.CreateTemp(os.TempDir(), "gotestfile*")
 	assert.NoError(t, err)
 	defer temp.Close()
+	tempname := os.TempDir() + "/" + temp.Name()
 
 	logger, err = New(config.Logger{
 		SyncTimeout: time.Millisecond * 100,
@@ -30,7 +32,7 @@ func TestLogger(t *testing.T) {
 			{
 				Name:           "test",
 				EncoderLevel:   "production",
-				Path:           config.EnvString(os.TempDir() + "/" + temp.Name()),
+				Path:           config.EnvString(tempname),
 				Level:          -1,
 				MustCreateCore: true,
 			},
@@ -38,7 +40,7 @@ func TestLogger(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	logger.Debug(testDebugMessage)
-	bytes, err := os.ReadFile(os.TempDir() + "/" + temp.Name())
+	bytes, err := os.ReadFile(tempname)
 	assert.NoError(t, err)
-	assert.Contains(t, string(bytes), "Testing logger123.")
+	assert.Contains(t, string(bytes), testDebugMessage)
 }

@@ -1,14 +1,12 @@
 package config
 
 import (
-	"path/filepath"
+	"master-service/internal/errspec"
 	"reflect"
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"master-service/internal/errspec"
 )
 
 // Global config, do not try to access it.
@@ -23,9 +21,6 @@ type (
 		Key   string
 		Value any
 	}
-
-	// Use pflag to bind.
-	flagSetter func()
 
 	// Other options.
 	elseSetter func() error
@@ -53,6 +48,7 @@ func registerENV(input ...string) (err error) {
 		// Not defined integer or bool should be "" as well.
 		envalue := viper.GetString(env)
 		if envalue == "" {
+
 			return errspec.MsgValue(ErrEnvNotDefined, "not defined", env)
 		}
 	}
@@ -60,18 +56,7 @@ func registerENV(input ...string) (err error) {
 	return nil
 }
 
-// Wraps viper.BindPFlags().
-func bindFlags() error {
-	pflag.Parse()
-	err := viper.BindPFlags(pflag.CommandLine)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 func fillGlobalConfig() error {
-
 	err := viper.ReadInConfig()
 	if err != nil {
 		return err
@@ -93,41 +78,10 @@ func fillGlobalConfig() error {
 	return nil
 }
 
-// Parse config file path for ext.
-//
-// # TODO filepath.EXT().
-func extFromPath(path string) string {
-	dotIndex := strings.LastIndexByte(path, '.')
-	if dotIndex == -1 {
-		return ""
-	}
-
-	return path[dotIndex+1:]
-}
-
-// Parse config file path for name.
-func nameFromPath(path string) string {
-	dotIndex := strings.LastIndexByte(path, '.')
-	if dotIndex == -1 {
-		return ""
-	}
-	slashIndex := strings.LastIndexByte(path[:dotIndex], '/')
-
-	return path[slashIndex+1 : dotIndex]
-}
-
 // Sets config file name and extension.
 func handleConfigFile() error {
-	configFileEnv := viper.GetString("CONFIG_FILE")
 
-	name := nameFromPath(configFileEnv)
-	ext := extFromPath(configFileEnv)
-
-	dir := filepath.Dir(configFileEnv)
-
-	viper.AddConfigPath(dir)
-	viper.SetConfigName(name)
-	viper.SetConfigType(ext)
+	viper.SetConfigFile(viper.GetString("CONFIG_FILE"))
 
 	return nil
 }
@@ -185,5 +139,4 @@ func envReplaceHook() mapstructure.DecodeHookFuncType {
 		})
 
 	return hook
-
 }

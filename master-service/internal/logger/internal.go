@@ -2,13 +2,13 @@ package logger
 
 import (
 	"errors"
+	"master-service/internal/errspec"
 	"os"
 	"path/filepath"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"master-service/internal/errspec"
 )
 
 const (
@@ -42,7 +42,6 @@ func assembleDestination(path string) (zapcore.WriteSyncer, error) {
 // Be careful when changing config.logger.cores.encoderLevel in runtime.
 // Might Panic!
 func setEncoder(name string) (zapcore.Encoder, error) {
-
 	if name == "production" {
 		return zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), nil
 	}

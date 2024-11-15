@@ -21,7 +21,6 @@ func Same(err NotSpecifiedError, a, b any) error {
 
 // Msg adds message to generic error.
 func Msg(err NotSpecifiedError, msg string) error {
-
 	return errors.Join(err, errors.New(msg))
 }
 

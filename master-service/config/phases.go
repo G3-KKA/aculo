@@ -7,23 +7,18 @@ import (
 // Initialaise config process.
 // Every path in service works around single env WORKSPACE.
 func initConfig() error {
-
 	pipeline := []initPhase{
 		setEnv,
-		setFlags,
 		handleConfigFile,
-		bindFlags,
 		fillGlobalConfig,
 		setElse,
 		doOverride,
 	}
-	err := execute(pipeline)
-
-	if err != nil {
+	if err := execute(pipeline); err != nil {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 // Set and immediately validate env variable.
@@ -38,19 +33,9 @@ func setEnv() error {
 	return nil
 }
 
-// Set flags.
-func setFlags() error {
-	for _, flag := range flags {
-		flag()
-	}
-
-	return nil
-}
-
 // Callback on config change , aliases etc.
 func setElse() error {
 	for _, els := range elses {
-
 		err := els()
 		if err != nil {
 			return err

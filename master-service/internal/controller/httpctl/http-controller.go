@@ -2,24 +2,46 @@ package httpctl
 
 import (
 	"context"
+	"master-service/config"
+	"master-service/internal/logger"
+	"master-service/internal/model"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"master-service/internal/config"
-	"master-service/internal/logger"
 )
 
 const (
-	DEFAULT_TIMEOUT     = time.Second * 5
-	READ_HEADER_TIMEOUT = DEFAULT_TIMEOUT
-	SHUTDOWN_TIMEOUT    = DEFAULT_TIMEOUT
+	DefaultTimeout    = time.Second * 5
+	ReadHeaderTimeout = DefaultTimeout
+	ShutdownTimeout   = DefaultTimeout
 )
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname=MockService --outpkg=mock_httpctl
-type Service interface {
+type Service any
+
+// KafkaUsecase should prepare everything for future client to connect and use.
+//
+//go:generate mockery --filename=mock_kafka_usecase.go --name=KafkaUsecase --dir=. --structname=MockKafkaUsecase --outpkg=mock_httpctl
+type KafkaUsecase interface {
+
+	// RegisterKafkaClient prepares kafka and SA-cluster to handle new client.
+	RegisterKafkaClient() (model.KafkaMetadata, error)
 }
+
+/*
+ucase
+
+m's  = metrics()
+said = choseBestSA(m's)
+kafkaMD = createTopic()
+
+HandleTopic
+
+
+*/
+
 type (
 	HTTPController struct {
 		l      logger.Logger
@@ -28,6 +50,7 @@ type (
 		cfg config.HTTPServer
 	}
 	httpKafkaHandler struct {
+		ucase KafkaUsecase
 	}
 )
 
@@ -57,8 +80,8 @@ func NewHTTPController(cfg config.HTTPServer, l logger.Logger, srvc Service) (*H
 			Handler:                      engine,
 			DisableGeneralOptionsHandler: false,
 			TLSConfig:                    nil,
-			ReadTimeout:                  READ_HEADER_TIMEOUT,
-			ReadHeaderTimeout:            READ_HEADER_TIMEOUT,
+			ReadTimeout:                  ReadHeaderTimeout,
+			ReadHeaderTimeout:            ReadHeaderTimeout,
 			WriteTimeout:                 0,
 			IdleTimeout:                  0,
 			MaxHeaderBytes:               0,
@@ -75,18 +98,19 @@ func NewHTTPController(cfg config.HTTPServer, l logger.Logger, srvc Service) (*H
 
 // Gracefully shutdown the server.
 //
-// After [SHUTDOWN_TIMEOUT] will return [ErrShutdownTimeoutExceeded].
+// After [ShutdownTimeout] will return [ErrShutdownTimeoutExceeded].
 //
 // Blocking function, will block until .Shutdown() will be called.
 func (ctl *HTTPController) Shutdown(ctx context.Context) error {
 	ctx = context.WithoutCancel(ctx)
-	ctx, _ = context.WithTimeoutCause(ctx, SHUTDOWN_TIMEOUT, ErrShutdownTimeoutExceeded)
+	ctx, _ = context.WithTimeoutCause(ctx, ShutdownTimeout, ErrShutdownTimeoutExceeded)
 
 	return ctl.server.Shutdown(ctx)
 }
 
 // TODO: Swagger here.
 func (h *httpKafkaHandler) Register(gctx *gin.Context) {
+	md , err := h.ucase.RegisterKafkaClient()
+	ДАЛЬШЕ БЛЯТЬ 
 	gctx.JSON(http.StatusOK, "working!")
-
 }

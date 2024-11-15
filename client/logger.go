@@ -54,7 +54,7 @@ func New(ctx context.Context, masterAddress string) (*Logger, error) {
 
 		url = fmt.Sprintf("http://%s/register", masterAddress)
 
-		resp, err = http.Get(url)
+		resp, err = http.Get(url) // TODO: POST ?
 		if err != nil {
 			// TODO: Retry
 			return err

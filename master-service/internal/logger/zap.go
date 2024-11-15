@@ -2,11 +2,11 @@ package logger
 
 import (
 	"io"
+	"master-service/config"
 	"slices"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"master-service/internal/config"
 )
 
 var _ io.Writer = (*Logger)(nil)
@@ -21,7 +21,6 @@ type (
 
 // # Create new logger.
 func New(cfg config.Logger) (Logger, error) {
-
 	levels := make([]NamedLevel, 0, len(cfg.Cores))
 	cores := make([]zapcore.Core, 0, len(cfg.Cores))
 
@@ -65,7 +64,7 @@ func New(cfg config.Logger) (Logger, error) {
 	}
 	logger.Debug("Logger construction succeeded")
 
-	// TODO utilise returning stopFunc.
+	// TODO utilize returning stopFunc.
 	_ = syncOnTimout(logger, cfg.SyncTimeout)
 
 	return logger, nil

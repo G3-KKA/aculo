@@ -23,7 +23,6 @@ func (c Config) Print(to io.Writer) {
 			continue
 		}
 		_ = buf.WriteByte(b)
-
 	}
 	_, _ = to.Write(buf.Bytes())
 }

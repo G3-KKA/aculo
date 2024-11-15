@@ -13,9 +13,6 @@ var (
 		"CONFIG_FILE",
 	}
 
-	// Command line arguments, use pfalg, see example.
-	flags = [...]flagSetter{}
-
 	// Other viper options.
 	elses = [...]elseSetter{}
 
@@ -34,13 +31,6 @@ var (
 //   - Must exist, have same structure as config.Config, otherwise application shouldn't start
 //   - May be overridden in runtime or exist in multiple variants across application parts
 //   - Should not have a default value
-//
-// # Command Line Arguments
-//   - May not be defined
-//   - Lifetime constants, shouldnt be overridden in runtime
-//   - Should be defaulted by one of the following:
-//	    - Type Zero Values
-//	    - [-1 , "NO" , "off"] or other kind of negative value
 
 // Signalizes that config field may contain env signature,
 // and it must be replaced with value of the env.
@@ -79,3 +69,14 @@ type (
 		Address string `mapstructure:"Address"`
 	}
 )
+
+// Get reads from CONFIG_FILE.
+// Return config or zero value config and error.
+func Get() (Config, error) {
+	err := initConfig()
+	if err != nil {
+		return Config{}, err
+	}
+
+	return c, nil
+}

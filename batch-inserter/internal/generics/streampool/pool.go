@@ -34,8 +34,7 @@ func NewStreamPool(opts ...PoolOption) *Pool {
 		workers:     make(map[string]*worker, options.StartSize),
 		workersmx:   sync.Mutex{},
 		unavailable: atomic.Bool{},
-		//mx:          sync.RWMutex{},
-		wg: sync.WaitGroup{},
+		wg:          sync.WaitGroup{},
 	}
 }
 

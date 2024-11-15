@@ -4,11 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"master-service/config"
+	"master-service/internal/logger"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-	"master-service/internal/config"
-	"master-service/internal/logger"
 
 	mock_controller "master-service/internal/controller/mocks"
 )

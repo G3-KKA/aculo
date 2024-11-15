@@ -41,6 +41,7 @@ func New(ctx context.Context, config config.Config, srvc service.Service) (*fron
 		Addr:    config.HTTPServer.ListeningAddress + config.HTTPServer.Port,
 		Handler: mux,
 	}
+
 	return &frontServer{stdServer: &server}, nil
 }
 

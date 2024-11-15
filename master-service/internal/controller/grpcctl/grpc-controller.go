@@ -2,16 +2,16 @@ package grpcctl
 
 import (
 	"context"
+	"master-service/config"
+	"master-service/internal/logger"
 	"net"
 
 	"google.golang.org/grpc"
-	"master-service/internal/config"
-	"master-service/internal/logger"
 )
 
 //go:generate mockery --filename=mock_service.go --name=Service --dir=. --structname=MockService --outpkg=mock_grpcctl
-type Service interface {
-}
+type Service any
+
 type (
 	GRPCController struct {
 		server *grpc.Server
@@ -48,7 +48,6 @@ func NewGRPCController(cfg config.GRPCServer, l logger.Logger, srvc Service) (*G
 func (ctl *GRPCController) Serve(ctx context.Context) error {
 	lis, err := net.Listen("tcp", ctl.cfg.Address)
 	if err != nil {
-
 		return err
 	}
 

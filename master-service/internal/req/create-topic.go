@@ -1,6 +1,4 @@
 package req
 
-type CreateTopicRequest struct {
-}
-type CreateTopicResponse struct {
-}
+type CreateTopicRequest struct{}
+type CreateTopicResponse struct{}
